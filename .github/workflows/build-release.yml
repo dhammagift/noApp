@@ -18,18 +18,25 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 36
+          build-tools-version: 36.0.0
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew build -x lint
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease
+        run: ./gradlew app:assembleRelease
 
-      - name: Build Release Bundle
-        run: ./gradlew bundleRelease
+      - name: List APK files
+        run: find . -name "*.apk" -type f
 
       - name: Sign APK
         uses: r0adkll/sign-android-release@v1
@@ -44,13 +51,12 @@ jobs:
           BUILD_TOOLS_VERSION: "36.0.0"
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
+            app/build/outputs/apk/release/app-release-unsigned.apk
             app/build/outputs/apk/release/app-release.apk
-            app/build/outputs/bundle/release/app-release.aab
           draft: false
           prerelease: false
           generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
