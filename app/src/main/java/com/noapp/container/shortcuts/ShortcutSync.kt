@@ -26,7 +26,7 @@ private const val CONFIGURE_SHORTCUT_ID = "configure"
  * into Settings/Config — using up 1 of the budget. Unless [useAllSlotsInDirectMode]
  * opts out of that (Settings toggle): then the whole budget goes to real items,
  * and getting back to Settings relies on the brief gear shown on each dispatch
- * (see MainActivity's Screen.Dispatching) instead of a long-press entry.
+ * (see [GearOverlayService]) instead of a long-press entry.
  * AppMode.LIST: a plain tap always shows the full list (which has its own
  * "Configure" row), so no reserved entry is needed — the whole budget goes to
  * real shortcuts, taken in the user's configured order.

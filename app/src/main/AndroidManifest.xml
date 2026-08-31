@@ -1,5 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Only requested/used when Settings > "use all shortcut slots in Direct mode" is on:
+         flashes a translucent Configure gear over the app just launched, instead of a
+         permanent long-press shortcut. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
     <!-- Required to list installed launchable apps for the App-type slot picker on API 30+ package visibility -->
     <queries>
         <intent>
@@ -34,5 +39,9 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".shortcuts.GearOverlayService"
+            android:exported="false" />
     </application>
 </manifest>

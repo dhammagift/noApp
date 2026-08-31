@@ -2,6 +2,7 @@ package com.noapp.container
 
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -18,9 +19,9 @@ import com.noapp.container.model.SlotType
 import com.noapp.container.shortcuts.ActionDispatcher
 import com.noapp.container.shortcuts.EXTRA_OPEN_CONFIG
 import com.noapp.container.shortcuts.EXTRA_SLOT_ID
+import com.noapp.container.shortcuts.GearOverlayService
 import com.noapp.container.shortcuts.ShortcutSync
 import com.noapp.container.ui.ConfigScreen
-import com.noapp.container.ui.DispatchingScreen
 import com.noapp.container.ui.QuickPickSheet
 import com.noapp.container.ui.SettingsScreen
 import com.noapp.container.ui.SlotEditScreen
@@ -35,9 +36,6 @@ private sealed class Screen {
     data class NewSlot(val type: SlotType) : Screen()
     data object Settings : Screen()
     data class QuickPick(val sharedText: String?) : Screen()
-    /** Plain-tap DIRECT dispatch with useAllSlotsInDirectMode on: briefly shows a gear
-     *  before launching [slotId], since no OS shortcut is reserved for Configure. */
-    data class Dispatching(val slotId: Int) : Screen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -85,10 +83,6 @@ class MainActivity : ComponentActivity() {
                         slots.addAll(imported.slots)
                         useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode
                         persist()
-                    },
-                    onDispatchAndFinish = { slot ->
-                        ActionDispatcher.execute(this, slot)
-                        finish()
                     }
                 )
             }
@@ -105,26 +99,30 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Returns true (and finishes the activity) if [intent] should dispatch straight to a
-     * target with no UI at all: an explicit shortcut tap, or — when
-     * [AppConfig.useAllSlotsInDirectMode] is off — a plain DIRECT-mode tap too. When that
-     * option is on, a plain tap is instead left to render Screen.Dispatching (see
-     * [startScreen]), which shows a brief tappable gear before dispatching.
+     * target with no UI at all: an explicit shortcut tap, or a plain DIRECT-mode tap.
+     * Always instant either way — [AppConfig.useAllSlotsInDirectMode] only decides whether
+     * a translucent Configure gear also flashes on top via [GearOverlayService], it never
+     * delays the dispatch itself.
      */
     private fun dispatchIfShortcut(intent: Intent, config: AppConfig): Boolean {
         if (intent.getBooleanExtra(EXTRA_OPEN_CONFIG, false)) return false // Configure entry: show UI instead
 
         val explicitId = intent.getIntExtra(EXTRA_SLOT_ID, -1)
-        val slotId = when {
-            explicitId >= 0 -> explicitId
-            config.mode == AppMode.DIRECT &&
-                !config.useAllSlotsInDirectMode &&
-                isPlainLauncherTap(intent) &&
-                config.slots.getOrNull(0)?.isConfigured == true -> 0
-            else -> -1
+        if (explicitId >= 0) {
+            config.slots.getOrNull(explicitId)?.let { ActionDispatcher.execute(this, it) }
+            finish()
+            return true
         }
-        if (slotId < 0) return false
 
-        config.slots.getOrNull(slotId)?.let { ActionDispatcher.execute(this, it) }
+        val isPlainDirectTap = config.mode == AppMode.DIRECT &&
+            isPlainLauncherTap(intent) &&
+            config.slots.getOrNull(0)?.isConfigured == true
+        if (!isPlainDirectTap) return false
+
+        config.slots.getOrNull(0)?.let { ActionDispatcher.execute(this, it) }
+        if (config.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)) {
+            startService(Intent(this, GearOverlayService::class.java))
+        }
         finish()
         return true
     }
@@ -140,10 +138,6 @@ class MainActivity : ComponentActivity() {
 
     private fun startScreen(intent: Intent, config: AppConfig): Screen {
         if (intent.getBooleanExtra(EXTRA_OPEN_CONFIG, false)) return Screen.Config
-        val isPlainDirectTap = config.mode == AppMode.DIRECT &&
-            isPlainLauncherTap(intent) &&
-            config.slots.getOrNull(0)?.isConfigured == true
-        if (isPlainDirectTap && config.useAllSlotsInDirectMode) return Screen.Dispatching(0)
         val sharedText = if (intent.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             intent.getStringExtra(Intent.EXTRA_TEXT)
         } else null
@@ -161,8 +155,7 @@ private fun NoAppRoot(
     onSlotsChanged: (List<ShortcutSlot>) -> Unit,
     onModeChanged: (AppMode) -> Unit,
     onUseAllSlotsInDirectModeChanged: (Boolean) -> Unit,
-    onConfigImported: (AppConfig) -> Unit,
-    onDispatchAndFinish: (ShortcutSlot) -> Unit
+    onConfigImported: (AppConfig) -> Unit
 ) {
     if (screen !is Screen.Config) {
         BackHandler { onScreenChange(Screen.Config) }
@@ -223,17 +216,5 @@ private fun NoAppRoot(
             onConfigure = { onScreenChange(Screen.Config) },
             onDismiss = { onScreenChange(Screen.Config) }
         )
-
-        is Screen.Dispatching -> {
-            val slot = slots.getOrNull(screen.slotId)
-            if (slot == null) {
-                androidx.compose.runtime.LaunchedEffect(Unit) { onScreenChange(Screen.Config) }
-            } else {
-                DispatchingScreen(
-                    onOpenConfig = { onScreenChange(Screen.Config) },
-                    onDispatch = { onDispatchAndFinish(slot) }
-                )
-            }
-        }
     }
 }
