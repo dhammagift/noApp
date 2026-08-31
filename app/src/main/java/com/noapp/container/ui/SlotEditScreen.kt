@@ -49,7 +49,9 @@ fun SlotEditScreen(mode: AppMode, slot: ShortcutSlot, onSave: (ShortcutSlot) -> 
     var color by remember { mutableStateOf(slot.color) }
     var param by remember { mutableStateOf(slot.param) }
     var customIcon by remember { mutableStateOf(slot.customIcon) }
-    var showAppPicker by remember { mutableStateOf(false) }
+    // Landing here fresh on an unconfigured App slot (from the "+" menu) — skip the
+    // extra "Choose app" tap and open the picker immediately.
+    var showAppPicker by remember { mutableStateOf(slot.type == SlotType.APP && slot.param.isBlank()) }
 
     val title = if (mode == AppMode.DIRECT && slot.id == 0) "Edit Main action" else "Edit Item ${slot.id + 1}"
 
