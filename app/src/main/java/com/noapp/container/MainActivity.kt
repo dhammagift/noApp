@@ -14,6 +14,7 @@ import com.noapp.container.data.ConfigStore
 import com.noapp.container.model.AppConfig
 import com.noapp.container.model.AppMode
 import com.noapp.container.model.ShortcutSlot
+import com.noapp.container.model.SlotType
 import com.noapp.container.shortcuts.ActionDispatcher
 import com.noapp.container.shortcuts.EXTRA_OPEN_CONFIG
 import com.noapp.container.shortcuts.EXTRA_SLOT_ID
@@ -30,6 +31,7 @@ import com.noapp.container.ui.theme.NoAppTheme
 private sealed class Screen {
     data object Config : Screen()
     data class EditSlot(val index: Int) : Screen()
+    data class NewSlot(val type: SlotType) : Screen()
     data object Settings : Screen()
     data class QuickPick(val sharedText: String?) : Screen()
 }
@@ -141,6 +143,7 @@ private fun NoAppRoot(
             mode = mode,
             slots = slots,
             onEditSlot = { index -> onScreenChange(Screen.EditSlot(index)) },
+            onAddSlot = { type -> onScreenChange(Screen.NewSlot(type)) },
             onOpenSettings = { onScreenChange(Screen.Settings) },
             onModeChanged = onModeChanged,
             onSlotsChanged = onSlotsChanged
@@ -152,6 +155,16 @@ private fun NoAppRoot(
             onSave = { updated ->
                 val next = slots.toMutableList().also { it[screen.index] = updated }
                 onSlotsChanged(next)
+                onScreenChange(Screen.Config)
+            },
+            onCancel = { onScreenChange(Screen.Config) }
+        )
+
+        is Screen.NewSlot -> SlotEditScreen(
+            mode = mode,
+            slot = ShortcutSlot(id = slots.size, type = screen.type),
+            onSave = { created ->
+                onSlotsChanged(slots + created)
                 onScreenChange(Screen.Config)
             },
             onCancel = { onScreenChange(Screen.Config) }

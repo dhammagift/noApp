@@ -148,11 +148,11 @@ fun SettingsScreen(
             )
             HorizontalDivider()
             ListItem(
-                headlineContent = { Text("Export config") },
+                headlineContent = { Text("Backup") },
                 modifier = Modifier.clickable { exportLauncher.launch("noapp-config.json") }
             )
             ListItem(
-                headlineContent = { Text("Import config") },
+                headlineContent = { Text("Restore") },
                 modifier = Modifier.clickable { importLauncher.launch(arrayOf("application/json")) }
             )
         }
