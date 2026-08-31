@@ -160,15 +160,25 @@ private fun NoAppRoot(
             onCancel = { onScreenChange(Screen.Config) }
         )
 
-        is Screen.NewSlot -> SlotEditScreen(
-            mode = mode,
-            slot = ShortcutSlot(id = slots.size, type = screen.type),
-            onSave = { created ->
-                onSlotsChanged(slots + created)
-                onScreenChange(Screen.Config)
-            },
-            onCancel = { onScreenChange(Screen.Config) }
-        )
+        is Screen.NewSlot -> {
+            // Fills the first empty gap (e.g. left by Fill or a swipe-delete) before
+            // appending a new row, same as Fill's own fill-in-place-first behavior.
+            val targetIndex = slots.indexOfFirst { !it.isConfigured }.let { if (it < 0) slots.size else it }
+            SlotEditScreen(
+                mode = mode,
+                slot = ShortcutSlot(id = targetIndex, type = screen.type),
+                onSave = { created ->
+                    val next = if (targetIndex < slots.size) {
+                        slots.toMutableList().also { it[targetIndex] = created }
+                    } else {
+                        slots + created
+                    }
+                    onSlotsChanged(next)
+                    onScreenChange(Screen.Config)
+                },
+                onCancel = { onScreenChange(Screen.Config) }
+            )
+        }
 
         is Screen.Settings -> SettingsScreen(
             config = AppConfig(mode, slots.toList()),

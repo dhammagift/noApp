@@ -20,7 +20,13 @@ data class DraggableSlot(val stableKey: Int, val slot: ShortcutSlot)
  * ShortcutManagerCompat on every pixel of drag would not be).
  */
 class SlotDragState(initial: List<ShortcutSlot>) {
-    var items by mutableStateOf(initial.mapIndexed { i, s -> DraggableSlot(i, s) })
+    // Monotonic, never reused — so a row removed by swipe/clear can never hand its key (and
+    // with it, its composable state, e.g. mid-swipe SwipeToDismissBoxState) to the row that
+    // shifts into its old position.
+    private var nextKey = 0
+    private fun newKey() = nextKey++
+
+    var items by mutableStateOf(initial.map { DraggableSlot(newKey(), it) })
         private set
     var draggedIndex by mutableStateOf(-1)
         private set
@@ -64,7 +70,7 @@ class SlotDragState(initial: List<ShortcutSlot>) {
 
     /** Ignored mid-drag so an external recomposition (e.g. edit-screen save) can't yank the list underfoot. */
     fun resync(slots: List<ShortcutSlot>) {
-        if (draggedIndex < 0) items = slots.mapIndexed { i, s -> DraggableSlot(i, s) }
+        if (draggedIndex < 0) items = slots.map { DraggableSlot(newKey(), it) }
     }
 }
 
