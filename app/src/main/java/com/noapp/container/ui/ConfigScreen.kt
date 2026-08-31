@@ -112,11 +112,15 @@ fun ConfigScreen(
     val scope = rememberCoroutineScope()
 
     fun removeWithUndo(previous: List<ShortcutSlot>, updated: List<ShortcutSlot>, message: String) {
+        // previous is a live SnapshotStateList reference (see slots: List<ShortcutSlot> above) —
+        // snapshot it to a real immutable copy before mutating, or Undo would just reapply
+        // the already-mutated list onto itself.
+        val previousSnapshot = previous.toList()
         onSlotsChanged(updated)
         scope.launch {
             val result = snackbarHostState.showSnackbar(message, actionLabel = "Undo", duration = SnackbarDuration.Short)
             if (result == SnackbarResult.ActionPerformed) {
-                onSlotsChanged(previous)
+                onSlotsChanged(previousSnapshot)
             }
         }
     }

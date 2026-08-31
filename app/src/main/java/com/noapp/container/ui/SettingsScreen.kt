@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.pm.ShortcutManagerCompat
@@ -154,6 +155,14 @@ fun SettingsScreen(
             ListItem(
                 headlineContent = { Text("Restore") },
                 modifier = Modifier.clickable { importLauncher.launch(arrayOf("application/json")) }
+            )
+            HorizontalDivider()
+            val pkgInfo = remember {
+                runCatching { context.packageManager.getPackageInfo(context.packageName, 0) }.getOrNull()
+            }
+            ListItem(
+                headlineContent = { Text("Version") },
+                supportingContent = { Text(pkgInfo?.versionName ?: "unknown") }
             )
         }
     }
