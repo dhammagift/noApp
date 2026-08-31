@@ -23,13 +23,16 @@ private const val CONFIGURE_SHORTCUT_ID = "configure"
  *
  * AppMode.DIRECT: a plain tap bypasses all UI when slot 0 is configured, so a
  * permanent "Configure" entry is reserved here as the only remaining way back
- * into Settings/Config — using up 1 of the budget.
+ * into Settings/Config — using up 1 of the budget. Unless [useAllSlotsInDirectMode]
+ * opts out of that (Settings toggle): then the whole budget goes to real items,
+ * and getting back to Settings relies on the brief gear shown on each dispatch
+ * (see MainActivity's Screen.Dispatching) instead of a long-press entry.
  * AppMode.LIST: a plain tap always shows the full list (which has its own
  * "Configure" row), so no reserved entry is needed — the whole budget goes to
  * real shortcuts, taken in the user's configured order.
  */
 object ShortcutSync {
-    fun sync(context: Context, mode: AppMode, slots: List<ShortcutSlot>) {
+    fun sync(context: Context, mode: AppMode, slots: List<ShortcutSlot>, useAllSlotsInDirectMode: Boolean = false) {
         val budget = ShortcutManagerCompat.getMaxShortcutCountPerActivity(context)
             .let { if (it <= 0) 4 else it } // defensive; real launchers always report > 0
 
@@ -38,7 +41,7 @@ object ShortcutSync {
                 val mainConfigured = slots.getOrNull(0)?.isConfigured == true
                 val auxSlots = slots.filter { it.id != 0 && it.isConfigured }
                 buildList {
-                    if (mainConfigured && budget >= 1) add(configureShortcut(context))
+                    if (mainConfigured && !useAllSlotsInDirectMode && budget >= 1) add(configureShortcut(context))
                     addAll(auxSlots.take((budget - size).coerceAtLeast(0)).map { shortcutFor(context, it) })
                 }
             }

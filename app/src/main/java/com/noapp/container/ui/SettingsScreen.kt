@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -29,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.pm.ShortcutManagerCompat
 import com.noapp.container.data.ConfigStore
 import com.noapp.container.model.AppConfig
+import com.noapp.container.model.AppMode
 import com.noapp.container.shortcuts.ShortcutSync
 
 private const val GITHUB_URL = "https://github.com/dhammagift/noApp"
@@ -41,6 +43,7 @@ private const val PRIVACY_POLICY_URL = "https://github.com/dhammagift/noApp/blob
 fun SettingsScreen(
     config: AppConfig,
     onImportConfig: (AppConfig) -> Unit,
+    onUseAllSlotsInDirectModeChanged: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -88,6 +91,28 @@ fun SettingsScreen(
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             val firstSlot = config.slots.getOrNull(0)?.takeIf { it.isConfigured }
+            if (config.mode == AppMode.DIRECT) {
+                ListItem(
+                    headlineContent = { Text("Use all shortcut slots in Direct mode") },
+                    supportingContent = {
+                        Text(
+                            if (config.useAllSlotsInDirectMode) {
+                                "No slot reserved for Configure — long-press shows only your items. " +
+                                    "A translucent gear flashes on launch instead."
+                            } else {
+                                "One shortcut slot is reserved for a permanent Configure entry"
+                            }
+                        )
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = config.useAllSlotsInDirectMode,
+                            onCheckedChange = onUseAllSlotsInDirectModeChanged
+                        )
+                    }
+                )
+                HorizontalDivider()
+            }
             ListItem(
                 headlineContent = { Text("Pin “${firstSlot?.label?.ifBlank { "your first item" } ?: "your first item"}” to home screen") },
                 supportingContent = {

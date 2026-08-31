@@ -12,5 +12,9 @@ enum class AppMode { LIST, DIRECT }
 
 data class AppConfig(
     val mode: AppMode = AppMode.LIST,
-    val slots: List<ShortcutSlot> = ShortcutSlot.emptySlots()
+    val slots: List<ShortcutSlot> = ShortcutSlot.emptySlots(),
+    // DIRECT only: skip reserving one OS shortcut slot for "Configure" so all of the
+    // device's shortcut budget goes to real items. Trades that permanent long-press
+    // entry for a brief tappable gear shown on every plain-tap dispatch instead.
+    val useAllSlotsInDirectMode: Boolean = false
 )
