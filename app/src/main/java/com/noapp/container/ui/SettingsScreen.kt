@@ -25,8 +25,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.pm.ShortcutManagerCompat
 import com.noapp.container.data.ConfigStore
 import com.noapp.container.model.AppConfig
+import com.noapp.container.shortcuts.ShortcutSync
 
 private const val GITHUB_URL = "https://github.com/dhammagift/noApp"
 
@@ -84,6 +86,25 @@ fun SettingsScreen(
         }
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
+            val firstSlot = config.slots.getOrNull(0)?.takeIf { it.isConfigured }
+            ListItem(
+                headlineContent = { Text("Pin “${firstSlot?.label?.ifBlank { "your first item" } ?: "your first item"}” to home screen") },
+                supportingContent = {
+                    Text(
+                        if (firstSlot != null) "Adds a separate icon that launches it directly, next to No App"
+                        else "Configure your first item to enable this"
+                    )
+                },
+                modifier = Modifier.clickable(enabled = firstSlot != null) {
+                    val slot = firstSlot ?: return@clickable
+                    if (ShortcutManagerCompat.isRequestPinShortcutSupported(context)) {
+                        ShortcutManagerCompat.requestPinShortcut(context, ShortcutSync.shortcutFor(context, slot), null)
+                    } else {
+                        Toast.makeText(context, "Your launcher doesn't support pinning shortcuts", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            )
+            HorizontalDivider()
             ListItem(
                 headlineContent = { Text("Share") },
                 leadingContent = { Icon(Icons.Default.Share, contentDescription = null) },

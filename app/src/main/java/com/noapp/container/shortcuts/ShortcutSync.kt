@@ -61,7 +61,8 @@ object ShortcutSync {
             )
             .build()
 
-    private fun shortcutFor(context: Context, slot: ShortcutSlot): ShortcutInfoCompat {
+    /** Exposed (not just used internally by [sync]) so Settings can pin a single slot as its own home-screen icon. */
+    internal fun shortcutFor(context: Context, slot: ShortcutSlot): ShortcutInfoCompat {
         val intent = Intent(context, MainActivity::class.java)
             .setAction(Intent.ACTION_VIEW)
             .putExtra(EXTRA_SLOT_ID, slot.id)
