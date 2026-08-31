@@ -20,7 +20,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -28,7 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.noapp.container.data.ConfigStore
 import com.noapp.container.model.AppConfig
-import com.noapp.container.model.AppMode
 
 private const val GITHUB_URL = "https://github.com/dhammagift/noApp"
 
@@ -40,7 +38,6 @@ private const val PRIVACY_POLICY_URL = "https://github.com/dhammagift/noApp/blob
 fun SettingsScreen(
     config: AppConfig,
     onImportConfig: (AppConfig) -> Unit,
-    onModeChanged: (AppMode) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -87,22 +84,6 @@ fun SettingsScreen(
         }
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
-            ListItem(
-                headlineContent = { Text("Tap opens") },
-                supportingContent = {
-                    Text(
-                        if (config.mode == AppMode.LIST) "A list of your items, in your order (default)"
-                        else "The first item directly"
-                    )
-                },
-                trailingContent = {
-                    Switch(
-                        checked = config.mode == AppMode.LIST,
-                        onCheckedChange = { onModeChanged(if (it) AppMode.LIST else AppMode.DIRECT) }
-                    )
-                }
-            )
-            HorizontalDivider()
             ListItem(
                 headlineContent = { Text("Share") },
                 leadingContent = { Icon(Icons.Default.Share, contentDescription = null) },

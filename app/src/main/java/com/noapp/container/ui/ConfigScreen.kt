@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -47,6 +48,7 @@ fun ConfigScreen(
     slots: List<ShortcutSlot>,
     onEditSlot: (Int) -> Unit,
     onOpenSettings: () -> Unit,
+    onModeChanged: (AppMode) -> Unit,
     onSlotsChanged: (List<ShortcutSlot>) -> Unit
 ) {
     var showFillDialog by remember { mutableStateOf(false) }
@@ -57,6 +59,10 @@ fun ConfigScreen(
             TopAppBar(
                 title = { Text("No App") },
                 actions = {
+                    AssistChip(
+                        onClick = { onModeChanged(if (mode == AppMode.LIST) AppMode.DIRECT else AppMode.LIST) },
+                        label = { Text(if (mode == AppMode.LIST) "☰ List" else "▶ Direct") }
+                    )
                     TextButton(onClick = { showFillDialog = true }) { Text("Fill") }
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
@@ -124,12 +130,21 @@ fun ConfigScreen(
             maxSelection = MAX_FILL_SELECTION,
             onDismiss = { showFillDialog = false },
             onConfirm = { picks ->
-                // Always appends after whatever is already configured — never overwrites
-                // existing slots, so re-running Fill is safe to repeat.
-                val newSlots = picks.mapIndexed { i, (pkg, appLabel) ->
-                    ShortcutSlot(id = slots.size + i, type = SlotType.APP, label = appLabel, param = pkg)
+                // Fills existing empty slots in order first, then appends any leftover picks.
+                // Never overwrites an already-configured slot.
+                val updated = slots.toMutableList()
+                var pickIndex = 0
+                for (i in updated.indices) {
+                    if (pickIndex >= picks.size) break
+                    if (!updated[i].isConfigured) {
+                        val (pkg, appLabel) = picks[pickIndex++]
+                        updated[i] = updated[i].copy(type = SlotType.APP, label = appLabel, param = pkg)
+                    }
                 }
-                onSlotsChanged(slots + newSlots)
+                val remaining = picks.drop(pickIndex).mapIndexed { i, (pkg, appLabel) ->
+                    ShortcutSlot(id = updated.size + i, type = SlotType.APP, label = appLabel, param = pkg)
+                }
+                onSlotsChanged(updated + remaining)
                 showFillDialog = false
             }
         )

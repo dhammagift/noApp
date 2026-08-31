@@ -104,9 +104,14 @@ class MainActivity : ComponentActivity() {
         return true
     }
 
-    /** Distinguishes a genuine icon tap from an incidental relaunch Intent with no extras. */
+    /**
+     * MainActivity only has two real entry points — a launcher tap and an ACTION_SEND share —
+     * plus internal shortcut/configure Intents already handled above. "Not a share" is a more
+     * robust plain-tap signal than requiring an exact ACTION_MAIN/CATEGORY_LAUNCHER match, since
+     * some OEM launchers don't deliver that combo exactly.
+     */
     private fun isPlainLauncherTap(intent: Intent): Boolean =
-        intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_LAUNCHER)
+        intent.action != Intent.ACTION_SEND
 
     private fun startScreen(intent: Intent, config: AppConfig): Screen {
         if (intent.getBooleanExtra(EXTRA_OPEN_CONFIG, false)) return Screen.Config
@@ -137,6 +142,7 @@ private fun NoAppRoot(
             slots = slots,
             onEditSlot = { index -> onScreenChange(Screen.EditSlot(index)) },
             onOpenSettings = { onScreenChange(Screen.Settings) },
+            onModeChanged = onModeChanged,
             onSlotsChanged = onSlotsChanged
         )
 
@@ -154,7 +160,6 @@ private fun NoAppRoot(
         is Screen.Settings -> SettingsScreen(
             config = AppConfig(mode, slots.toList()),
             onImportConfig = onConfigImported,
-            onModeChanged = onModeChanged,
             onBack = { onScreenChange(Screen.Config) }
         )
 

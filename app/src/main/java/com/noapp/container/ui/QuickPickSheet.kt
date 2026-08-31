@@ -2,7 +2,10 @@ package com.noapp.container.ui
 
 import android.app.Activity
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -26,9 +30,9 @@ import com.noapp.container.shortcuts.ActionDispatcher
 
 /**
  * Anchored to the bottom of the screen by ModalBottomSheet itself — easy thumb
- * reach, no extra positioning work needed. The item list is capped/scrollable
- * since this is now the default AppMode.LIST entry point and can hold more
- * than a handful of items; "Configure" stays pinned below it either way.
+ * reach, no extra positioning work needed. "Configure" sits in a small header
+ * row up top (least reachable spot) so the item list, which ends at the very
+ * bottom of the sheet, keeps the most reachable position for real items.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +47,11 @@ fun QuickPickSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.padding(bottom = 24.dp)) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.End) {
+                IconButton(onClick = onConfigure) {
+                    Icon(Icons.Default.Settings, contentDescription = "Configure")
+                }
+            }
             if (sharedText != null) {
                 Text(
                     "Send “$sharedText” to:",
@@ -62,11 +71,6 @@ fun QuickPickSheet(
                     )
                 }
             }
-            ListItem(
-                headlineContent = { Text("Configure") },
-                leadingContent = { Icon(Icons.Default.Settings, contentDescription = null) },
-                modifier = Modifier.clickable(onClick = onConfigure)
-            )
         }
     }
 }
