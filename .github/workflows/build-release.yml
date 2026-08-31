@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (optional, e.g., v1.0.2)'
+        required: false
+        type: string
 
 jobs:
   build:
@@ -12,6 +18,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
