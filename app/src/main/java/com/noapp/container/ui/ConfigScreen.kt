@@ -2,8 +2,11 @@ package com.noapp.container.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
@@ -31,12 +34,16 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.noapp.container.icon.SlotIcon
+import com.noapp.container.model.AppMode
 import com.noapp.container.model.ShortcutSlot
 import com.noapp.container.model.SlotType
+
+private const val MAX_FILL_SELECTION = 20
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConfigScreen(
+    mode: AppMode,
     slots: List<ShortcutSlot>,
     onEditSlot: (Int) -> Unit,
     onOpenSettings: () -> Unit,
@@ -62,7 +69,7 @@ fun ConfigScreen(
             itemsIndexed(dragState.items, key = { _, d -> d.stableKey }) { index, draggable ->
                 val slot = draggable.slot
                 val isDragging = dragState.draggedIndex == index
-                val positionLabel = if (index == 0) "Main · tap icon" else "Shortcut $index"
+                val positionLabel = if (mode == AppMode.DIRECT && index == 0) "Main · tap icon" else "Item ${index + 1}"
                 ListItem(
                     headlineContent = { Text(slot.label.ifBlank { positionLabel }) },
                     supportingContent = {
@@ -72,7 +79,18 @@ fun ConfigScreen(
                         )
                     },
                     leadingContent = { SlotIcon(slot, size = 40.dp) },
-                    trailingContent = { Icon(Icons.Default.Menu, contentDescription = "Drag to reorder") },
+                    trailingContent = {
+                        Row {
+                            Text(
+                                "✕",
+                                modifier = Modifier.clickable(enabled = slot.isConfigured) {
+                                    onSlotsChanged(slots.toMutableList().also { it[index] = ShortcutSlot(id = index) })
+                                }
+                            )
+                            Spacer(Modifier.width(16.dp))
+                            Icon(Icons.Default.Menu, contentDescription = "Drag to reorder")
+                        }
+                    },
                     modifier = Modifier
                         .zIndex(if (isDragging) 1f else 0f)
                         .then(if (isDragging) Modifier else Modifier.animateItem())
@@ -103,14 +121,15 @@ fun ConfigScreen(
     if (showFillDialog) {
         AppPickerDialog(
             multiSelect = true,
-            maxSelection = slots.size,
+            maxSelection = MAX_FILL_SELECTION,
             onDismiss = { showFillDialog = false },
             onConfirm = { picks ->
-                val updated = slots.toMutableList()
-                picks.forEachIndexed { i, (pkg, appLabel) ->
-                    updated[i] = updated[i].copy(type = SlotType.APP, label = appLabel, param = pkg)
+                // Always appends after whatever is already configured — never overwrites
+                // existing slots, so re-running Fill is safe to repeat.
+                val newSlots = picks.mapIndexed { i, (pkg, appLabel) ->
+                    ShortcutSlot(id = slots.size + i, type = SlotType.APP, label = appLabel, param = pkg)
                 }
-                onSlotsChanged(updated)
+                onSlotsChanged(slots + newSlots)
                 showFillDialog = false
             }
         )

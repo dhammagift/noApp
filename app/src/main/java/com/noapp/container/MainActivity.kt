@@ -11,6 +11,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.noapp.container.data.ConfigStore
+import com.noapp.container.model.AppConfig
+import com.noapp.container.model.AppMode
 import com.noapp.container.model.ShortcutSlot
 import com.noapp.container.shortcuts.ActionDispatcher
 import com.noapp.container.shortcuts.EXTRA_OPEN_CONFIG
@@ -40,18 +42,36 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             NoAppTheme {
-                val slots = remember { mutableStateListOf(*ConfigStore.load(this).toTypedArray()) }
-                var screen by remember { mutableStateOf(startScreen(intent, slots)) }
+                val initialConfig = remember { ConfigStore.load(this) }
+                var mode by remember { mutableStateOf(initialConfig.mode) }
+                val slots = remember { mutableStateListOf(*initialConfig.slots.toTypedArray()) }
+                var screen by remember { mutableStateOf(startScreen(intent, initialConfig)) }
+
+                fun persist() {
+                    val config = AppConfig(mode, slots.toList())
+                    ConfigStore.save(this, config)
+                    ShortcutSync.sync(this, mode, slots.toList())
+                }
 
                 NoAppRoot(
+                    mode = mode,
                     slots = slots,
                     screen = screen,
                     onScreenChange = { screen = it },
                     onSlotsChanged = { updated ->
                         slots.clear()
                         slots.addAll(updated)
-                        ConfigStore.save(this, slots)
-                        ShortcutSync.sync(this, slots)
+                        persist()
+                    },
+                    onModeChanged = { newMode ->
+                        mode = newMode
+                        persist()
+                    },
+                    onConfigImported = { imported ->
+                        mode = imported.mode
+                        slots.clear()
+                        slots.addAll(imported.slots)
+                        persist()
                     }
                 )
             }
@@ -70,16 +90,16 @@ class MainActivity : ComponentActivity() {
     private fun dispatchIfShortcut(intent: Intent): Boolean {
         if (intent.getBooleanExtra(EXTRA_OPEN_CONFIG, false)) return false // Configure entry: show UI instead
 
-        val slots = ConfigStore.load(this)
+        val config = ConfigStore.load(this)
         val explicitId = intent.getIntExtra(EXTRA_SLOT_ID, -1)
         val slotId = when {
             explicitId >= 0 -> explicitId
-            isPlainLauncherTap(intent) && slots.getOrNull(0)?.isConfigured == true -> 0
+            config.mode == AppMode.DIRECT && isPlainLauncherTap(intent) && config.slots.getOrNull(0)?.isConfigured == true -> 0
             else -> -1
         }
         if (slotId < 0) return false
 
-        slots.getOrNull(slotId)?.let { ActionDispatcher.execute(this, it) }
+        config.slots.getOrNull(slotId)?.let { ActionDispatcher.execute(this, it) }
         finish()
         return true
     }
@@ -88,21 +108,24 @@ class MainActivity : ComponentActivity() {
     private fun isPlainLauncherTap(intent: Intent): Boolean =
         intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_LAUNCHER)
 
-    private fun startScreen(intent: Intent, slots: List<ShortcutSlot>): Screen {
+    private fun startScreen(intent: Intent, config: AppConfig): Screen {
         if (intent.getBooleanExtra(EXTRA_OPEN_CONFIG, false)) return Screen.Config
         val sharedText = if (intent.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             intent.getStringExtra(Intent.EXTRA_TEXT)
         } else null
-        return if (slots.none { it.isConfigured }) Screen.Config else Screen.QuickPick(sharedText)
+        return if (config.slots.none { it.isConfigured }) Screen.Config else Screen.QuickPick(sharedText)
     }
 }
 
 @androidx.compose.runtime.Composable
 private fun NoAppRoot(
+    mode: AppMode,
     slots: androidx.compose.runtime.snapshots.SnapshotStateList<ShortcutSlot>,
     screen: Screen,
     onScreenChange: (Screen) -> Unit,
-    onSlotsChanged: (List<ShortcutSlot>) -> Unit
+    onSlotsChanged: (List<ShortcutSlot>) -> Unit,
+    onModeChanged: (AppMode) -> Unit,
+    onConfigImported: (AppConfig) -> Unit
 ) {
     if (screen !is Screen.Config) {
         BackHandler { onScreenChange(Screen.Config) }
@@ -110,6 +133,7 @@ private fun NoAppRoot(
 
     when (screen) {
         is Screen.Config -> ConfigScreen(
+            mode = mode,
             slots = slots,
             onEditSlot = { index -> onScreenChange(Screen.EditSlot(index)) },
             onOpenSettings = { onScreenChange(Screen.Settings) },
@@ -117,6 +141,7 @@ private fun NoAppRoot(
         )
 
         is Screen.EditSlot -> SlotEditScreen(
+            mode = mode,
             slot = slots[screen.index],
             onSave = { updated ->
                 val next = slots.toMutableList().also { it[screen.index] = updated }
@@ -127,8 +152,9 @@ private fun NoAppRoot(
         )
 
         is Screen.Settings -> SettingsScreen(
-            slots = slots,
-            onImport = { imported -> onSlotsChanged(imported) },
+            config = AppConfig(mode, slots.toList()),
+            onImportConfig = onConfigImported,
+            onModeChanged = onModeChanged,
             onBack = { onScreenChange(Screen.Config) }
         )
 

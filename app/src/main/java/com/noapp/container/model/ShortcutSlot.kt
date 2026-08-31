@@ -3,8 +3,10 @@ package com.noapp.container.model
 enum class SlotType { APP, URL, INTENT, CUSTOM }
 
 /**
- * One of the 5 fixed slots: id 0 fires on a plain tap of the app icon ("Main"),
- * ids 1..4 are the auxiliary OS long-press shortcuts.
+ * One entry in a variable-length, user-ordered list (see [AppConfig]). [id] is
+ * always its current list position, reassigned on every add/remove/reorder —
+ * not a stable identity. In AppMode.DIRECT, id 0 is special ("Main": fires on
+ * a plain tap); in AppMode.LIST every entry is just a row in the shown list.
  * [param] holds the type-specific payload: package name (APP), URL (URL),
  * or an intent URI string parsed via Intent.parseUri (INTENT, CUSTOM).
  * [customIcon], if set, overrides the icon entirely (an emoji or short text,

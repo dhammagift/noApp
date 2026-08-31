@@ -8,6 +8,7 @@ import androidx.core.graphics.drawable.IconCompat
 import com.noapp.container.MainActivity
 import com.noapp.container.icon.iconBitmapFor
 import com.noapp.container.icon.monogramBitmap
+import com.noapp.container.model.AppMode
 import com.noapp.container.model.ShortcutSlot
 
 const val EXTRA_SLOT_ID = "extra_slot_id"
@@ -16,21 +17,34 @@ private const val SHORTCUT_ICON_SIZE_PX = 108
 private const val CONFIGURE_SHORTCUT_ID = "configure"
 
 /**
- * Publishes the auxiliary slots (id 1..4) as dynamic App Shortcuts (long-press menu).
- * When the main slot (id 0) is configured, a plain tap launches it directly instead of
- * opening the app's UI, so a permanent "Configure" entry is reserved here as the only
- * remaining way back into Settings/Config — using up 1 of the device's shortcut budget.
+ * Publishes configured slots as dynamic App Shortcuts (long-press menu), always
+ * capped at the device's actual shortcut budget regardless of how many slots
+ * are configured overall.
+ *
+ * AppMode.DIRECT: a plain tap bypasses all UI when slot 0 is configured, so a
+ * permanent "Configure" entry is reserved here as the only remaining way back
+ * into Settings/Config — using up 1 of the budget.
+ * AppMode.LIST: a plain tap always shows the full list (which has its own
+ * "Configure" row), so no reserved entry is needed — the whole budget goes to
+ * real shortcuts, taken in the user's configured order.
  */
 object ShortcutSync {
-    fun sync(context: Context, slots: List<ShortcutSlot>) {
+    fun sync(context: Context, mode: AppMode, slots: List<ShortcutSlot>) {
         val budget = ShortcutManagerCompat.getMaxShortcutCountPerActivity(context)
             .let { if (it <= 0) 4 else it } // defensive; real launchers always report > 0
-        val mainConfigured = slots.getOrNull(0)?.isConfigured == true
-        val auxSlots = slots.filter { it.id != 0 && it.isConfigured }
 
-        val shortcuts = buildList {
-            if (mainConfigured && budget >= 1) add(configureShortcut(context))
-            addAll(auxSlots.take((budget - size).coerceAtLeast(0)).map { shortcutFor(context, it) })
+        val shortcuts = when (mode) {
+            AppMode.DIRECT -> {
+                val mainConfigured = slots.getOrNull(0)?.isConfigured == true
+                val auxSlots = slots.filter { it.id != 0 && it.isConfigured }
+                buildList {
+                    if (mainConfigured && budget >= 1) add(configureShortcut(context))
+                    addAll(auxSlots.take((budget - size).coerceAtLeast(0)).map { shortcutFor(context, it) })
+                }
+            }
+            AppMode.LIST -> {
+                slots.filter { it.isConfigured }.take(budget).map { shortcutFor(context, it) }
+            }
         }
         // Full replace each time: always under budget by construction, no drift bookkeeping needed.
         ShortcutManagerCompat.setDynamicShortcuts(context, shortcuts)
@@ -53,7 +67,7 @@ object ShortcutSync {
             .putExtra(EXTRA_SLOT_ID, slot.id)
 
         return ShortcutInfoCompat.Builder(context, "slot_${slot.id}")
-            .setShortLabel(slot.label.ifBlank { "Slot ${slot.id}" }) // ids 1..4 already read naturally
+            .setShortLabel(slot.label.ifBlank { "Item ${slot.id + 1}" })
             .setIcon(IconCompat.createWithBitmap(iconBitmapFor(context, slot, SHORTCUT_ICON_SIZE_PX)))
             .setIntent(intent)
             .build()

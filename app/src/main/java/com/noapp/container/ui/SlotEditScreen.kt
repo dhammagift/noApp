@@ -37,12 +37,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.noapp.container.model.AppMode
 import com.noapp.container.model.ShortcutSlot
 import com.noapp.container.model.SlotType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SlotEditScreen(slot: ShortcutSlot, onSave: (ShortcutSlot) -> Unit, onCancel: () -> Unit) {
+fun SlotEditScreen(mode: AppMode, slot: ShortcutSlot, onSave: (ShortcutSlot) -> Unit, onCancel: () -> Unit) {
     var type by remember { mutableStateOf(slot.type) }
     var label by remember { mutableStateOf(slot.label) }
     var color by remember { mutableStateOf(slot.color) }
@@ -50,10 +51,12 @@ fun SlotEditScreen(slot: ShortcutSlot, onSave: (ShortcutSlot) -> Unit, onCancel:
     var customIcon by remember { mutableStateOf(slot.customIcon) }
     var showAppPicker by remember { mutableStateOf(false) }
 
+    val title = if (mode == AppMode.DIRECT && slot.id == 0) "Edit Main action" else "Edit Item ${slot.id + 1}"
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (slot.id == 0) "Edit Main action" else "Edit Shortcut ${slot.id}") },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onCancel) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Cancel")
