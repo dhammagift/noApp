@@ -2,6 +2,7 @@ package com.noapp.container.ui
 
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings as AndroidSettings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,20 +15,28 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.pm.ShortcutManagerCompat
 import com.noapp.container.data.ConfigStore
 import com.noapp.container.model.AppConfig
+import com.noapp.container.model.AppMode
 import com.noapp.container.shortcuts.ShortcutSync
 
 private const val GITHUB_URL = "https://github.com/dhammagift/noApp"
@@ -40,6 +49,7 @@ private const val PRIVACY_POLICY_URL = "https://github.com/dhammagift/noApp/blob
 fun SettingsScreen(
     config: AppConfig,
     onImportConfig: (AppConfig) -> Unit,
+    onUseAllSlotsInDirectModeChanged: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -73,6 +83,16 @@ fun SettingsScreen(
         }
     }
 
+    var showOverlayExplainer by remember { mutableStateOf(false) }
+    val overlaySettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (AndroidSettings.canDrawOverlays(context)) {
+            onUseAllSlotsInDirectModeChanged(true)
+        }
+        // Declined: leave the option off, config was never actually flipped.
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -87,6 +107,34 @@ fun SettingsScreen(
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             val firstSlot = config.slots.getOrNull(0)?.takeIf { it.isConfigured }
+            if (config.mode == AppMode.DIRECT) {
+                ListItem(
+                    headlineContent = { Text("Use all shortcut slots in Direct mode") },
+                    supportingContent = {
+                        Text(
+                            if (config.useAllSlotsInDirectMode) {
+                                "No slot reserved for Configure — long-press shows only your items. " +
+                                    "A translucent gear flashes on launch instead."
+                            } else {
+                                "One shortcut slot is reserved for a permanent Configure entry"
+                            }
+                        )
+                    },
+                    trailingContent = {
+                        Switch(
+                            checked = config.useAllSlotsInDirectMode,
+                            onCheckedChange = { turningOn ->
+                                when {
+                                    !turningOn -> onUseAllSlotsInDirectModeChanged(false)
+                                    AndroidSettings.canDrawOverlays(context) -> onUseAllSlotsInDirectModeChanged(true)
+                                    else -> showOverlayExplainer = true
+                                }
+                            }
+                        )
+                    }
+                )
+                HorizontalDivider()
+            }
             ListItem(
                 headlineContent = { Text("Pin “${firstSlot?.label?.ifBlank { "your first item" } ?: "your first item"}” to home screen") },
                 supportingContent = {
@@ -155,6 +203,39 @@ fun SettingsScreen(
                 headlineContent = { Text("Restore") },
                 modifier = Modifier.clickable { importLauncher.launch(arrayOf("application/json")) }
             )
+            HorizontalDivider()
+            val pkgInfo = remember {
+                runCatching { context.packageManager.getPackageInfo(context.packageName, 0) }.getOrNull()
+            }
+            ListItem(
+                headlineContent = { Text("Version") },
+                supportingContent = { Text(pkgInfo?.versionName ?: "unknown") }
+            )
         }
+    }
+
+    if (showOverlayExplainer) {
+        AlertDialog(
+            onDismissRequest = { showOverlayExplainer = false },
+            title = { Text("Draw over other apps") },
+            text = {
+                Text(
+                    "To flash a Configure gear over the app it launches — instead of holding you " +
+                        "on a blank screen or reserving a shortcut slot — No App needs the \"draw over " +
+                        "other apps\" permission. You'll be taken to system settings to turn it on."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showOverlayExplainer = false
+                    overlaySettingsLauncher.launch(
+                        Intent(AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
+                    )
+                }) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showOverlayExplainer = false }) { Text("Cancel") }
+            }
+        )
     }
 }

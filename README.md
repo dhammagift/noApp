@@ -1,11 +1,32 @@
 # No App
 
-A minimal Android "smart shortcut container". No App is itself just a launcher shim:
-configure up to 4 slots (App / URL / Intent / Custom), then trigger them via the
-system App Shortcuts menu (long-press the icon) or a quick-pick bottom sheet on a
-normal tap. Also works as a share target — receive shared text into a URL/Intent
-slot via a `{{word}}` placeholder, or forward it natively to an app that accepts
-shared text.
+A flexible Android launcher app that turns your home screen icon into a customizable command center.
+
+![No App Android Mockup](icons/noApp%20android.jpg)
+
+## What is No App?
+
+Instead of cluttering your home screen with dozens of app shortcuts, **No App** gives you one icon that does many things. Configure it once, tap it endlessly.
+
+## How It Works
+
+Choose your interaction style:
+
+### LIST Mode (Default)
+Tap the icon → see all your shortcuts in a sleek bottom sheet menu. Perfect for frequently-used apps, websites, or quick actions without OS limits.
+
+### DIRECT Mode
+Tap the icon → launches your primary shortcut instantly. No UI, no delay. Long-press the icon for quick access to backups and alternatives — all managed by the OS.
+
+## Features
+
+- **Unlimited shortcuts**: App launches, URLs, custom intents — configure as many as you need
+- **Two interaction modes**: LIST for exploration, DIRECT for speed
+- **Drag-to-reorder**: Arrange your shortcuts exactly how you want them
+- **Customizable icons**: Emoji badges, colored labels, or the original app icons
+- **Smart sharing**: Share text directly to your shortcuts — use `{{word}}` placeholders in URLs to dynamically insert shared content
+- **Import/export**: Backup and restore your entire config as JSON
+- **OS integration**: Syncs with Android App Shortcuts for long-press menu support
 
 ## Build
 
@@ -13,19 +34,8 @@ shared text.
 ./gradlew assembleDebug
 ```
 
-Requires an Android SDK with platform 36 + build-tools 36.1.0 (`local.properties`
-with `sdk.dir=...`, gitignored).
-
-## Features
-
-- 4 configurable shortcut slots: launch an app, open a URL, fire an arbitrary
-  Intent, or a custom Intent-URI action.
-- Dynamic App Shortcuts (`ShortcutManagerCompat`) synced on every save.
-- Bottom-sheet quick picker on a direct tap.
-- Share-target support: `wikipedia.org/wiki/{{word}}`-style URL templates, or
-  forwarding shared text to another app via `ACTION_SEND`.
-- Export/import the 4-slot config as a JSON file.
+Requires Android SDK platform 36 + build-tools 36.1.0 (`local.properties` with `sdk.dir=...`, gitignored).
 
 ## License
 
-MIT (see `LICENSE`, add one if publishing).
+MIT (see `LICENSE`).

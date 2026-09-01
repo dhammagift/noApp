@@ -34,6 +34,7 @@ object ConfigStore {
         return JSONObject()
             .put("mode", config.mode.name)
             .put("slots", arr)
+            .put("useAllSlotsInDirectMode", config.useAllSlotsInDirectMode)
             .toString()
     }
 
@@ -56,7 +57,11 @@ object ConfigStore {
                 customIcon = obj.optString("customIcon", "")
             )
         }
-        AppConfig(mode = mode, slots = slots.ifEmpty { ShortcutSlot.emptySlots() })
+        AppConfig(
+            mode = mode,
+            slots = slots.ifEmpty { ShortcutSlot.emptySlots() },
+            useAllSlotsInDirectMode = root.optBoolean("useAllSlotsInDirectMode", false)
+        )
     }.getOrDefault(AppConfig())
 
     fun load(context: Context): AppConfig {

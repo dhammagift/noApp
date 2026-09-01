@@ -2,6 +2,7 @@ package com.noapp.container
 
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -18,6 +19,7 @@ import com.noapp.container.model.SlotType
 import com.noapp.container.shortcuts.ActionDispatcher
 import com.noapp.container.shortcuts.EXTRA_OPEN_CONFIG
 import com.noapp.container.shortcuts.EXTRA_SLOT_ID
+import com.noapp.container.shortcuts.GearOverlayService
 import com.noapp.container.shortcuts.ShortcutSync
 import com.noapp.container.ui.ConfigScreen
 import com.noapp.container.ui.QuickPickSheet
@@ -40,24 +42,26 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (dispatchIfShortcut(intent)) return
+        val initialConfig = ConfigStore.load(this)
+        if (dispatchIfShortcut(intent, initialConfig)) return
 
         setContent {
             NoAppTheme {
-                val initialConfig = remember { ConfigStore.load(this) }
                 var mode by remember { mutableStateOf(initialConfig.mode) }
                 val slots = remember { mutableStateListOf(*initialConfig.slots.toTypedArray()) }
+                var useAllSlotsInDirectMode by remember { mutableStateOf(initialConfig.useAllSlotsInDirectMode) }
                 var screen by remember { mutableStateOf(startScreen(intent, initialConfig)) }
 
                 fun persist() {
-                    val config = AppConfig(mode, slots.toList())
+                    val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode)
                     ConfigStore.save(this, config)
-                    ShortcutSync.sync(this, mode, slots.toList())
+                    ShortcutSync.sync(this, mode, slots.toList(), useAllSlotsInDirectMode)
                 }
 
                 NoAppRoot(
                     mode = mode,
                     slots = slots,
+                    useAllSlotsInDirectMode = useAllSlotsInDirectMode,
                     screen = screen,
                     onScreenChange = { screen = it },
                     onSlotsChanged = { updated ->
@@ -69,10 +73,15 @@ class MainActivity : ComponentActivity() {
                         mode = newMode
                         persist()
                     },
+                    onUseAllSlotsInDirectModeChanged = { value ->
+                        useAllSlotsInDirectMode = value
+                        persist()
+                    },
                     onConfigImported = { imported ->
                         mode = imported.mode
                         slots.clear()
                         slots.addAll(imported.slots)
+                        useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode
                         persist()
                     }
                 )
@@ -83,25 +92,37 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        dispatchIfShortcut(intent)
+        dispatchIfShortcut(intent, ConfigStore.load(this))
         // A repeat share/tap while the UI is already open is rare enough to just leave the
         // current screen as-is rather than re-plumb intent state into the composition.
     }
 
-    /** Returns true (and finishes the activity) if [intent] should dispatch straight to a target. */
-    private fun dispatchIfShortcut(intent: Intent): Boolean {
+    /**
+     * Returns true (and finishes the activity) if [intent] should dispatch straight to a
+     * target with no UI at all: an explicit shortcut tap, or a plain DIRECT-mode tap.
+     * Always instant either way — [AppConfig.useAllSlotsInDirectMode] only decides whether
+     * a translucent Configure gear also flashes on top via [GearOverlayService], it never
+     * delays the dispatch itself.
+     */
+    private fun dispatchIfShortcut(intent: Intent, config: AppConfig): Boolean {
         if (intent.getBooleanExtra(EXTRA_OPEN_CONFIG, false)) return false // Configure entry: show UI instead
 
-        val config = ConfigStore.load(this)
         val explicitId = intent.getIntExtra(EXTRA_SLOT_ID, -1)
-        val slotId = when {
-            explicitId >= 0 -> explicitId
-            config.mode == AppMode.DIRECT && isPlainLauncherTap(intent) && config.slots.getOrNull(0)?.isConfigured == true -> 0
-            else -> -1
+        if (explicitId >= 0) {
+            config.slots.getOrNull(explicitId)?.let { ActionDispatcher.execute(this, it) }
+            finish()
+            return true
         }
-        if (slotId < 0) return false
 
-        config.slots.getOrNull(slotId)?.let { ActionDispatcher.execute(this, it) }
+        val isPlainDirectTap = config.mode == AppMode.DIRECT &&
+            isPlainLauncherTap(intent) &&
+            config.slots.getOrNull(0)?.isConfigured == true
+        if (!isPlainDirectTap) return false
+
+        config.slots.getOrNull(0)?.let { ActionDispatcher.execute(this, it) }
+        if (config.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)) {
+            startService(Intent(this, GearOverlayService::class.java))
+        }
         finish()
         return true
     }
@@ -128,10 +149,12 @@ class MainActivity : ComponentActivity() {
 private fun NoAppRoot(
     mode: AppMode,
     slots: androidx.compose.runtime.snapshots.SnapshotStateList<ShortcutSlot>,
+    useAllSlotsInDirectMode: Boolean,
     screen: Screen,
     onScreenChange: (Screen) -> Unit,
     onSlotsChanged: (List<ShortcutSlot>) -> Unit,
     onModeChanged: (AppMode) -> Unit,
+    onUseAllSlotsInDirectModeChanged: (Boolean) -> Unit,
     onConfigImported: (AppConfig) -> Unit
 ) {
     if (screen !is Screen.Config) {
@@ -160,19 +183,30 @@ private fun NoAppRoot(
             onCancel = { onScreenChange(Screen.Config) }
         )
 
-        is Screen.NewSlot -> SlotEditScreen(
-            mode = mode,
-            slot = ShortcutSlot(id = slots.size, type = screen.type),
-            onSave = { created ->
-                onSlotsChanged(slots + created)
-                onScreenChange(Screen.Config)
-            },
-            onCancel = { onScreenChange(Screen.Config) }
-        )
+        is Screen.NewSlot -> {
+            // Fills the first empty gap (e.g. left by Fill or a swipe-delete) before
+            // appending a new row, same as Fill's own fill-in-place-first behavior.
+            val targetIndex = slots.indexOfFirst { !it.isConfigured }.let { if (it < 0) slots.size else it }
+            SlotEditScreen(
+                mode = mode,
+                slot = ShortcutSlot(id = targetIndex, type = screen.type),
+                onSave = { created ->
+                    val next = if (targetIndex < slots.size) {
+                        slots.toMutableList().also { it[targetIndex] = created }
+                    } else {
+                        slots + created
+                    }
+                    onSlotsChanged(next)
+                    onScreenChange(Screen.Config)
+                },
+                onCancel = { onScreenChange(Screen.Config) }
+            )
+        }
 
         is Screen.Settings -> SettingsScreen(
-            config = AppConfig(mode, slots.toList()),
+            config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode),
             onImportConfig = onConfigImported,
+            onUseAllSlotsInDirectModeChanged = onUseAllSlotsInDirectModeChanged,
             onBack = { onScreenChange(Screen.Config) }
         )
 
