@@ -7,6 +7,8 @@ normal tap. Also works as a share target — receive shared text into a URL/Inte
 slot via a `{{word}}` placeholder, or forward it natively to an app that accepts
 shared text.
 
+![No App Android Mockup](icons/noApp%20android.jpg)
+
 ## Build
 
 ```
