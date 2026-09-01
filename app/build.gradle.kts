@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "gift.dhamma.noapp"
+    namespace = "com.noapp.container"
     compileSdk = 36
 
     defaultConfig {
