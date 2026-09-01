@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.noapp.container"
+    namespace = "gift.dhamma.noapp"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.noapp.container"
+        applicationId = "gift.dhamma.noapp"
         minSdk = 36
         targetSdk = 36
         versionCode = 3
