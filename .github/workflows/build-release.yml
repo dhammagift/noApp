@@ -14,7 +14,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -74,8 +76,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            app/build/outputs/apk/release/app-release.apk
-            app/build/outputs/bundle/release/app-release.aab
+            ${{ steps.sign_app.outputs.signedReleaseFile }}
+            ${{ steps.sign_bundle.outputs.signedReleaseFile }}
           draft: false
           prerelease: false
           generate_release_notes: true
