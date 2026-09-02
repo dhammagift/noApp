@@ -1,12 +1,12 @@
-# No App
+# Not App
 
 A flexible Android launcher app that turns your home screen icon into a customizable command center.
 
-![No App Android Mockup](icons/noApp%20android.jpg)
+![No App Android Mockup](icons/notApp-android.jpg)
 
-## What is No App?
+## What is Not App?
 
-Instead of cluttering your home screen with dozens of app shortcuts, **No App** gives you one icon that does many things. Configure it once, tap it endlessly.
+Instead of cluttering your home screen with dozens of app shortcuts, **Not App** gives you one icon that does many things. Configure it once, tap it endlessly.
 
 ## How It Works
 
