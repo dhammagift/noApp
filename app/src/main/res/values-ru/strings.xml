@@ -47,7 +47,6 @@
     <string name="icon_variant_flash">Вспышка</string>
     <string name="icon_variant_sankha_flat">Раковина</string>
     <string name="icon_variant_sankha_3d">Раковина 3D</string>
-    <string name="icon_variant_sankha_bckgr">Раковина (фон)</string>
 
     <!-- Ярлык в системном меню (long-press), не Compose -->
     <string name="shortcut_configure_label">Настройки</string>

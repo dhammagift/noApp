@@ -26,8 +26,7 @@ val ICON_VARIANTS = listOf(
     IconVariant("electric", ".IconElectric", ".IconElectricList", R.drawable.ic_launcher_foreground_electric),
     IconVariant("flash", ".IconFlash", ".IconFlashList", R.drawable.ic_launcher_foreground_flash),
     IconVariant("sankha_flat", ".IconSankhaFlat", ".IconSankhaFlatList", R.drawable.ic_launcher_foreground_sankha_flat),
-    IconVariant("sankha_3d", ".IconSankha3d", ".IconSankha3dList", R.drawable.ic_launcher_foreground_sankha_3d),
-    IconVariant("sankha_bckgr", ".IconSankhaBckgr", ".IconSankhaBckgrList", R.drawable.ic_launcher_foreground_sankha_bckgr)
+    IconVariant("sankha_3d", ".IconSankha3d", ".IconSankha3dList", R.drawable.ic_launcher_foreground_sankha_3d)
 )
 
 /**
@@ -48,8 +47,12 @@ fun applyLauncherComponent(context: Context, variantId: String, mode: AppMode) {
     val pm = context.packageManager
     val appPackage = context.packageName
     val useListTarget = mode == AppMode.LIST
+    // A variant removed from the list (e.g. after an update) but still persisted from an older
+    // install would otherwise match nothing below, leaving every alias disabled — no launcher
+    // icon at all. Fall back to the first variant instead.
+    val resolvedVariantId = if (ICON_VARIANTS.any { it.id == variantId }) variantId else ICON_VARIANTS.first().id
     for (variant in ICON_VARIANTS) {
-        val isChosen = variant.id == variantId
+        val isChosen = variant.id == resolvedVariantId
         pm.setComponentEnabledSetting(
             ComponentName(appPackage, "$NAMESPACE${variant.mainComponentSuffix}"),
             stateFor(isChosen && !useListTarget),

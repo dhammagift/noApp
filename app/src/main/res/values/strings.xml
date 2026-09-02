@@ -50,7 +50,6 @@
     <string name="icon_variant_flash">Flash</string>
     <string name="icon_variant_sankha_flat">Shell</string>
     <string name="icon_variant_sankha_3d">Shell 3D</string>
-    <string name="icon_variant_sankha_bckgr">Shell BG</string>
 
     <!-- OS shortcut labels (long-press menu), not Compose — plain string lookup -->
     <string name="shortcut_configure_label">Configure</string>

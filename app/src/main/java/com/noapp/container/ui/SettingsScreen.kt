@@ -76,7 +76,6 @@ private fun IconVariant.displayName(): String = when (id) {
     "flash" -> stringResource(R.string.icon_variant_flash)
     "sankha_flat" -> stringResource(R.string.icon_variant_sankha_flat)
     "sankha_3d" -> stringResource(R.string.icon_variant_sankha_3d)
-    "sankha_bckgr" -> stringResource(R.string.icon_variant_sankha_bckgr)
     else -> id
 }
 
