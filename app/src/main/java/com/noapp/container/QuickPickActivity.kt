@@ -16,12 +16,25 @@ const val EXTRA_SHARED_TEXT = "extra_shared_text"
  * plain-tap LIST-mode picker and the share-target sheet — so it renders as a
  * popup over whatever was already on screen instead of a full opaque app switch.
  * MainActivity keeps everything else (Config/Settings/edit screens).
+ *
+ * Also the direct launcher entry point in LIST mode (see the "*List" aliases in the
+ * manifest and icon/AppIconSwitcher.kt): its own starting window is already invisible,
+ * which a launcher tap routed through MainActivity's opaque theme first never could be.
+ * That means a fresh install — LIST mode by default, nothing configured yet — can land
+ * here directly with zero slots; redirect straight to Configure instead of showing an
+ * empty sheet.
  */
 class QuickPickActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val sharedText = intent.getStringExtra(EXTRA_SHARED_TEXT)
         val slots = ConfigStore.load(this).slots.filter { it.isConfigured }
+
+        if (slots.isEmpty() && sharedText == null) {
+            startActivity(Intent(this, MainActivity::class.java).putExtra(EXTRA_OPEN_CONFIG, true))
+            finish()
+            return
+        }
 
         setContent {
             NoAppTheme {

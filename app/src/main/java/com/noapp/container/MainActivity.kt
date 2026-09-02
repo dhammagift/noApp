@@ -42,6 +42,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val initialConfig = ConfigStore.load(this)
+        // Reconciles the enabled launcher-alias pair with the persisted (variant, mode) —
+        // covers an app update that added the "*List" aliases after this config was last
+        // saved, or any other drift; a no-op the rest of the time. Doesn't affect this launch,
+        // only the next one.
+        com.noapp.container.icon.applyLauncherComponent(this, initialConfig.iconVariant, initialConfig.mode)
         if (dispatchIfShortcut(intent, initialConfig)) return
 
         setContent {
@@ -56,6 +61,7 @@ class MainActivity : ComponentActivity() {
                     val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant)
                     ConfigStore.save(this, config)
                     ShortcutSync.sync(this, mode, slots.toList(), useAllSlotsInDirectMode)
+                    com.noapp.container.icon.applyLauncherComponent(this, iconVariant, mode)
                 }
 
                 NoAppRoot(
@@ -80,7 +86,6 @@ class MainActivity : ComponentActivity() {
                     },
                     onIconVariantChanged = { value ->
                         iconVariant = value
-                        com.noapp.container.icon.applyIconVariant(this, value)
                         persist()
                     },
                     onConfigImported = { imported ->

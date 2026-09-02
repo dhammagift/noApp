@@ -1,13 +1,16 @@
 package com.noapp.container.shortcuts
 
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
+import android.hardware.display.DisplayManager
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
+import android.view.Display
 import android.view.Gravity
 import android.view.View
 import android.view.WindowInsets
@@ -19,7 +22,11 @@ import com.noapp.container.MainActivity
 import com.noapp.container.R
 
 private const val DISPLAY_MS = 2500L
-private const val ICON_DP = 40
+// Matches the Settings gear glyph's actual on-screen size (Material's default 24dp Icon,
+// as seen in ConfigScreen's own Settings button) — the 40dp box this used to render at
+// filled that whole area edge-to-edge once it became a solid vector glyph instead of a
+// smaller emoji-in-circle, which read as oversized.
+private const val ICON_DP = 24
 private const val TOP_MARGIN_DP = 12
 private const val END_MARGIN_DP = 12
 
@@ -38,6 +45,14 @@ class GearOverlayService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    /** See the comment at its call site in [onStartCommand] for why this exists. */
+    private fun activeDisplayContext(): Context {
+        val displayManager = getSystemService(DISPLAY_SERVICE) as? DisplayManager ?: return this
+        val active = runCatching { displayManager.displays.firstOrNull { it.state == Display.STATE_ON } }
+            .getOrNull() ?: return this
+        return runCatching { createDisplayContext(active) }.getOrDefault(this)
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (overlayView != null) {
             handler.removeCallbacks(autoRemove)
@@ -49,10 +64,18 @@ class GearOverlayService : Service() {
             return START_NOT_STICKY
         }
 
-        val density = resources.displayMetrics.density
+        // getSystemService(WINDOW_SERVICE) on a plain Service (no Activity/Display of its own)
+        // always attaches to Display.DEFAULT_DISPLAY — normally fine, but on a folded flip
+        // phone the OS switches rendering to the small cover display while the *internal*
+        // display (still id/DEFAULT_DISPLAY on many OEM builds) is powered off. A window added
+        // there is on a screen nobody is looking at: not mispositioned, just literally never
+        // shown. createDisplayContext() on whichever display DisplayManager reports as
+        // currently STATE_ON routes the overlay to the screen actually in front of the user.
+        val overlayContext = activeDisplayContext()
+        val density = overlayContext.resources.displayMetrics.density
         val sizePx = (ICON_DP * density).toInt()
 
-        val wm = getSystemService(WINDOW_SERVICE) as WindowManager
+        val wm = overlayContext.getSystemService(WINDOW_SERVICE) as WindowManager
         windowManager = wm
 
         // wm.currentWindowMetrics (API 30+) reports the bounds/insets of the display this
@@ -73,11 +96,11 @@ class GearOverlayService : Service() {
                 .getInsets(WindowInsets.Type.statusBars() or WindowInsets.Type.displayCutout())
                 .top
         } else {
-            screenWidthPx = resources.displayMetrics.widthPixels
-            screenHeightPx = resources.displayMetrics.heightPixels
-            statusBarPx = resources.getIdentifier("status_bar_height", "dimen", "android")
+            screenWidthPx = overlayContext.resources.displayMetrics.widthPixels
+            screenHeightPx = overlayContext.resources.displayMetrics.heightPixels
+            statusBarPx = overlayContext.resources.getIdentifier("status_bar_height", "dimen", "android")
                 .takeIf { it > 0 }
-                ?.let { resources.getDimensionPixelSize(it) }
+                ?.let { overlayContext.resources.getDimensionPixelSize(it) }
                 ?: (24 * density).toInt()
         }
         // Still clamp even with real metrics — a cover display can report a status-bar inset
@@ -85,8 +108,8 @@ class GearOverlayService : Service() {
         // value — so the icon must never be allowed past a fifth of the shorter screen edge.
         val maxYPx = (minOf(screenHeightPx, screenWidthPx) * 0.2f).toInt()
 
-        val view = ImageView(this).apply {
-            val gear = ContextCompat.getDrawable(this@GearOverlayService, R.drawable.ic_settings_gear)
+        val view = ImageView(overlayContext).apply {
+            val gear = ContextCompat.getDrawable(overlayContext, R.drawable.ic_settings_gear)
             setImageBitmap(gear?.toBitmap(sizePx, sizePx))
             alpha = 0.55f
             setOnClickListener {
