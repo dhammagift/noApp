@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Enables the OS-native "App language" picker (Settings > Apps > Not App > Language) on
+     Android 13+, independent of the device's system language — the only per-app language
+     override mechanism that doesn't need a custom in-app switcher. Below API 33 the app just
+     follows the system locale, same as before. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="ru" />
+</locale-config>
