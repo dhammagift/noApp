@@ -1,10 +1,22 @@
 package com.noapp.container.icon
 
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.noapp.container.R
+import com.noapp.container.model.SlotType
+
+@Composable
+fun SlotType.displayName(): String = when (this) {
+    SlotType.APP -> stringResource(R.string.slot_type_app)
+    SlotType.URL -> stringResource(R.string.slot_type_url)
+    SlotType.INTENT -> stringResource(R.string.slot_type_intent)
+    SlotType.CUSTOM -> stringResource(R.string.slot_type_custom)
+}
 
 /**
  * Path data for exactly the 4 glyphs the slot-type picker needs, lifted from Google's

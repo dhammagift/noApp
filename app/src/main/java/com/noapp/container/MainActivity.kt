@@ -106,11 +106,13 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Returns true (and finishes the activity) if [intent] should be handled without ever
-     * showing MainActivity's own UI: an explicit shortcut tap or a plain DIRECT-mode tap
-     * dispatch straight to a target (always instant — [AppConfig.useAllSlotsInDirectMode]
-     * only decides whether a translucent Configure gear also flashes on top via
-     * [GearOverlayService]); a plain LIST-mode tap or an incoming share instead opens the
-     * translucent [QuickPickActivity] so it overlays whatever was on screen.
+     * showing MainActivity's own UI: an explicit shortcut tap or a plain DIRECT/MIX-mode tap
+     * dispatch straight to slot 0 (always instant — [AppConfig.useAllSlotsInDirectMode] only
+     * decides whether a translucent Configure gear also flashes on top via
+     * [GearOverlayService], DIRECT only); MIX additionally opens the same [QuickPickActivity]
+     * sheet LIST uses, on top of whatever slot 0 just launched; a plain LIST-mode tap, a MIX
+     * tap with slot 0 unconfigured, or an incoming share also opens that translucent sheet so
+     * it overlays whatever was on screen.
      */
     private fun dispatchIfShortcut(intent: Intent, config: AppConfig): Boolean {
         if (intent.getBooleanExtra(EXTRA_OPEN_CONFIG, false)) return false // Configure entry: show UI instead
@@ -123,13 +125,17 @@ class MainActivity : ComponentActivity() {
         }
 
         val isPlainTap = isPlainLauncherTap(intent)
-        val isPlainDirectTap = config.mode == AppMode.DIRECT &&
+        val isPlainMainTap = (config.mode == AppMode.DIRECT || config.mode == AppMode.MIX) &&
             isPlainTap &&
             config.slots.getOrNull(0)?.isConfigured == true
-        if (isPlainDirectTap) {
+        if (isPlainMainTap) {
             config.slots.getOrNull(0)?.let { ActionDispatcher.execute(this, it) }
-            if (config.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)) {
-                startService(Intent(this, GearOverlayService::class.java))
+            when (config.mode) {
+                AppMode.DIRECT -> if (config.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)) {
+                    startService(Intent(this, GearOverlayService::class.java))
+                }
+                AppMode.MIX -> startActivity(Intent(this, QuickPickActivity::class.java))
+                AppMode.LIST -> Unit
             }
             finish()
             return true

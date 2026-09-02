@@ -13,15 +13,97 @@
     <string name="settings_pin_hint_enabled">Adds a separate icon that launches it directly, next to Not App</string>
     <string name="settings_pin_hint_disabled">Configure your first item to enable this</string>
     <string name="settings_share">Share</string>
+    <string name="settings_share_text">Check out Not App: %1$s</string>
     <string name="settings_rate_app">Rate app</string>
     <string name="settings_source_code">Source code</string>
     <string name="settings_privacy_policy">Privacy policy</string>
     <string name="settings_backup">Backup</string>
     <string name="settings_restore">Restore</string>
     <string name="settings_version">Version</string>
+    <string name="settings_version_unknown">unknown</string>
     <string name="settings_overlay_dialog_title">Draw over other apps</string>
     <string name="settings_overlay_dialog_text">To flash a Configure gear over the app it launches — instead of holding you on a blank screen or reserving a shortcut slot — Not App needs the \"draw over other apps\" permission. You\'ll be taken to system settings to turn it on.</string>
     <string name="settings_continue">Continue</string>
     <string name="settings_cancel">Cancel</string>
     <string name="settings_back">Back</string>
+    <string name="toast_exported">Exported</string>
+    <string name="toast_export_failed">Export failed: %1$s</string>
+    <string name="toast_imported">Imported</string>
+    <string name="toast_import_failed">Import failed: %1$s</string>
+    <string name="toast_pin_unsupported">Your launcher doesn\'t support pinning shortcuts</string>
+    <string name="toast_launch_failed">Couldn\'t launch \"%1$s\": %2$s</string>
+
+    <!-- Common, shared across screens -->
+    <string name="common_cancel">Cancel</string>
+    <string name="common_save">Save</string>
+    <string name="common_close">Close</string>
+    <string name="common_undo">Undo</string>
+    <string name="common_item_n">Item %1$d</string>
+
+    <!-- App icon variant names (Settings > App icon) -->
+    <string name="icon_variant_default">Default</string>
+    <string name="icon_variant_material">Material</string>
+    <string name="icon_variant_bolt">Bolt</string>
+    <string name="icon_variant_boost">Boost</string>
+    <string name="icon_variant_electric">Electric</string>
+    <string name="icon_variant_flash">Flash</string>
+    <string name="icon_variant_sankha_flat">Shell</string>
+    <string name="icon_variant_sankha_3d">Shell 3D</string>
+    <string name="icon_variant_sankha_bckgr">Shell BG</string>
+
+    <!-- OS shortcut labels (long-press menu), not Compose — plain string lookup -->
+    <string name="shortcut_configure_label">Configure</string>
+
+    <!-- Main list (ConfigScreen) -->
+    <string name="config_mode_list">☰ List</string>
+    <string name="config_mode_direct">▶ Direct</string>
+    <string name="config_mode_mix">◫ Mix</string>
+    <string name="config_fill">Fill</string>
+    <string name="config_settings_desc">Settings</string>
+    <string name="config_snackbar_direct">Direct mode — tap now opens \"%1$s\" directly</string>
+    <string name="config_snackbar_list">List mode — tap now shows your items</string>
+    <string name="config_snackbar_mix">Mix mode — tap now opens \"%1$s\" and shows your items on top</string>
+    <string name="config_default_item">the first item</string>
+    <string name="config_add_item_desc">Add item</string>
+    <string name="slot_type_app">App</string>
+    <string name="slot_type_url">URL</string>
+    <string name="slot_type_intent">Intent</string>
+    <string name="slot_type_custom">Custom</string>
+    <string name="config_position_main">Main · tap icon</string>
+    <string name="config_not_configured">Not configured</string>
+    <string name="config_delete_desc">Delete</string>
+    <string name="config_reorder_desc">Drag to reorder</string>
+    <string name="config_removed_named">Removed \"%1$s\"</string>
+    <string name="config_cleared_named">Cleared \"%1$s\"</string>
+    <string name="config_removed_plain">Removed %1$s</string>
+
+    <!-- Slot edit screen -->
+    <string name="slot_edit_title_main">Edit Main action</string>
+    <string name="slot_edit_title_item">Edit Item %1$d</string>
+    <string name="slot_edit_cancel_desc">Cancel</string>
+    <string name="slot_edit_type_label">Type</string>
+    <string name="slot_edit_choose_app">Choose app</string>
+    <string name="slot_edit_url_label">URL</string>
+    <string name="slot_edit_url_placeholder">https://wikipedia.org/wiki/{{word}}</string>
+    <string name="slot_edit_shared_text_hint">Use {{word}} to insert text shared into Not App</string>
+    <string name="slot_edit_intent_label">Intent URI</string>
+    <string name="slot_edit_intent_placeholder">intent://...#Intent;...end</string>
+    <string name="slot_edit_label_field">Label</string>
+    <string name="slot_edit_icon_field">Icon (emoji, optional)</string>
+    <string name="slot_edit_icon_hint_app">Leave blank to use the app\'s own icon</string>
+    <string name="slot_edit_icon_hint_other">Leave blank for an auto-generated letter badge</string>
+    <string name="slot_edit_color_label">Color</string>
+
+    <!-- App picker dialog -->
+    <string name="app_picker_title_fill">Fill slots from apps</string>
+    <string name="app_picker_title_choose">Choose app</string>
+    <string name="app_picker_search">Search apps</string>
+    <plurals name="app_picker_fill_slots">
+        <item quantity="one">Fill %1$d slot</item>
+        <item quantity="other">Fill %1$d slots</item>
+    </plurals>
+
+    <!-- QuickPick sheet -->
+    <string name="quick_pick_configure_desc">Configure</string>
+    <string name="quick_pick_send_to">Send \"%1$s\" to:</string>
 </resources>

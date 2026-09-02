@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import com.noapp.container.R
 import com.noapp.container.model.ShortcutSlot
 import com.noapp.container.model.SlotType
 
@@ -21,7 +22,7 @@ object ActionDispatcher {
             }
             context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }.onFailure {
-            Toast.makeText(context, "Couldn't launch \"${slot.label}\": ${it.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_launch_failed, slot.label, it.message), Toast.LENGTH_SHORT).show()
         }
     }
 

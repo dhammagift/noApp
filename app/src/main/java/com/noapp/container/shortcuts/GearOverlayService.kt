@@ -3,16 +3,20 @@ package com.noapp.container.shortcuts
 import android.app.Service
 import android.content.Intent
 import android.graphics.PixelFormat
+import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
+import android.view.WindowInsets
 import android.view.WindowManager
 import android.widget.ImageView
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import com.noapp.container.MainActivity
-import com.noapp.container.icon.monogramBitmap
+import com.noapp.container.R
 
 private const val DISPLAY_MS = 2500L
 private const val ICON_DP = 40
@@ -46,23 +50,44 @@ class GearOverlayService : Service() {
         }
 
         val density = resources.displayMetrics.density
-        val statusBarPx = resources.getIdentifier("status_bar_height", "dimen", "android")
-            .takeIf { it > 0 }
-            ?.let { resources.getDimensionPixelSize(it) }
-            ?: (24 * density).toInt()
         val sizePx = (ICON_DP * density).toInt()
-        // On a small/cover display (e.g. a flip phone's outer screen) the looked-up status
-        // bar height can be disproportionately large relative to the actual screen — clamp
-        // so the icon still lands on-screen instead of past the visible area.
-        val screenHeightPx = resources.displayMetrics.heightPixels
-        val screenWidthPx = resources.displayMetrics.widthPixels
-        val maxYPx = (minOf(screenHeightPx, screenWidthPx) * 0.2f).toInt()
 
         val wm = getSystemService(WINDOW_SERVICE) as WindowManager
         windowManager = wm
 
+        // wm.currentWindowMetrics (API 30+) reports the bounds/insets of the display this
+        // exact WindowManager instance is actually attached to — resources.displayMetrics is
+        // process-wide and can be stale or simply wrong for the currently-active display on a
+        // foldable (e.g. still reflecting the main screen while the cover/outer display, a much
+        // smaller square panel, is what's actually on). Below API 30 there's no per-display
+        // metrics API for a Service, so fall back to the old resource-lookup heuristic.
+        val statusBarPx: Int
+        val screenWidthPx: Int
+        val screenHeightPx: Int
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val metrics = wm.currentWindowMetrics
+            val bounds = metrics.bounds
+            screenWidthPx = bounds.width()
+            screenHeightPx = bounds.height()
+            statusBarPx = metrics.windowInsets
+                .getInsets(WindowInsets.Type.statusBars() or WindowInsets.Type.displayCutout())
+                .top
+        } else {
+            screenWidthPx = resources.displayMetrics.widthPixels
+            screenHeightPx = resources.displayMetrics.heightPixels
+            statusBarPx = resources.getIdentifier("status_bar_height", "dimen", "android")
+                .takeIf { it > 0 }
+                ?.let { resources.getDimensionPixelSize(it) }
+                ?: (24 * density).toInt()
+        }
+        // Still clamp even with real metrics — a cover display can report a status-bar inset
+        // disproportionately large relative to its own small size, e.g. via a shared system
+        // value — so the icon must never be allowed past a fifth of the shorter screen edge.
+        val maxYPx = (minOf(screenHeightPx, screenWidthPx) * 0.2f).toInt()
+
         val view = ImageView(this).apply {
-            setImageBitmap(monogramBitmap("⚙", "#3C4043", sizePx))
+            val gear = ContextCompat.getDrawable(this@GearOverlayService, R.drawable.ic_settings_gear)
+            setImageBitmap(gear?.toBitmap(sizePx, sizePx))
             alpha = 0.55f
             setOnClickListener {
                 startActivity(

@@ -10,15 +10,99 @@
     <string name="settings_pin_hint_enabled">Добавляет отдельную иконку рядом с Not App, которая сразу запускает этот пункт</string>
     <string name="settings_pin_hint_disabled">Настройте первый пункт, чтобы включить эту опцию</string>
     <string name="settings_share">Поделиться</string>
+    <string name="settings_share_text">Посмотри Not App: %1$s</string>
     <string name="settings_rate_app">Оценить приложение</string>
     <string name="settings_source_code">Исходный код</string>
     <string name="settings_privacy_policy">Политика конфиденциальности</string>
     <string name="settings_backup">Резервная копия</string>
     <string name="settings_restore">Восстановить</string>
     <string name="settings_version">Версия</string>
+    <string name="settings_version_unknown">неизвестно</string>
     <string name="settings_overlay_dialog_title">Отображение поверх других приложений</string>
     <string name="settings_overlay_dialog_text">Чтобы показывать значок настроек поверх запускаемого приложения — вместо пустого экрана или занятого слота шортката — Not App нужно разрешение \"отображение поверх других приложений\". Откроются системные настройки, чтобы его включить.</string>
     <string name="settings_continue">Продолжить</string>
     <string name="settings_cancel">Отмена</string>
     <string name="settings_back">Назад</string>
+    <string name="toast_exported">Экспортировано</string>
+    <string name="toast_export_failed">Ошибка экспорта: %1$s</string>
+    <string name="toast_imported">Импортировано</string>
+    <string name="toast_import_failed">Ошибка импорта: %1$s</string>
+    <string name="toast_pin_unsupported">Ваш лаунчер не поддерживает закрепление ярлыков</string>
+    <string name="toast_launch_failed">Не удалось запустить \"%1$s\": %2$s</string>
+
+    <!-- Общее -->
+    <string name="common_cancel">Отмена</string>
+    <string name="common_save">Сохранить</string>
+    <string name="common_close">Закрыть</string>
+    <string name="common_undo">Отменить</string>
+    <string name="common_item_n">Пункт %1$d</string>
+
+    <!-- Варианты иконки приложения (Настройки > Иконка приложения) -->
+    <string name="icon_variant_default">Обычная</string>
+    <string name="icon_variant_material">Материал</string>
+    <string name="icon_variant_bolt">Молния</string>
+    <string name="icon_variant_boost">Буст</string>
+    <string name="icon_variant_electric">Электро</string>
+    <string name="icon_variant_flash">Вспышка</string>
+    <string name="icon_variant_sankha_flat">Раковина</string>
+    <string name="icon_variant_sankha_3d">Раковина 3D</string>
+    <string name="icon_variant_sankha_bckgr">Раковина (фон)</string>
+
+    <!-- Ярлык в системном меню (long-press), не Compose -->
+    <string name="shortcut_configure_label">Настройки</string>
+
+    <!-- Главный список -->
+    <string name="config_mode_list">☰ Список</string>
+    <string name="config_mode_direct">▶ Прямой</string>
+    <string name="config_mode_mix">◫ Микс</string>
+    <string name="config_fill">Заполнить</string>
+    <string name="config_settings_desc">Настройки</string>
+    <string name="config_snackbar_direct">Прямой режим — тап теперь сразу открывает \"%1$s\"</string>
+    <string name="config_snackbar_list">Режим списка — тап теперь показывает ваши пункты</string>
+    <string name="config_snackbar_mix">Режим Микс — тап теперь открывает \"%1$s\" и показывает ваши пункты поверх</string>
+    <string name="config_default_item">первый пункт</string>
+    <string name="config_add_item_desc">Добавить пункт</string>
+    <string name="slot_type_app">Приложение</string>
+    <string name="slot_type_url">URL</string>
+    <string name="slot_type_intent">Intent</string>
+    <string name="slot_type_custom">Другое</string>
+    <string name="config_position_main">Главный · тап по иконке</string>
+    <string name="config_not_configured">Не настроено</string>
+    <string name="config_delete_desc">Удалить</string>
+    <string name="config_reorder_desc">Перетащить для сортировки</string>
+    <string name="config_removed_named">Удалено \"%1$s\"</string>
+    <string name="config_cleared_named">Очищено \"%1$s\"</string>
+    <string name="config_removed_plain">Удалено: %1$s</string>
+
+    <!-- Экран редактирования пункта -->
+    <string name="slot_edit_title_main">Редактирование главного действия</string>
+    <string name="slot_edit_title_item">Редактирование пункта %1$d</string>
+    <string name="slot_edit_cancel_desc">Отмена</string>
+    <string name="slot_edit_type_label">Тип</string>
+    <string name="slot_edit_choose_app">Выбрать приложение</string>
+    <string name="slot_edit_url_label">URL</string>
+    <string name="slot_edit_url_placeholder">https://wikipedia.org/wiki/{{word}}</string>
+    <string name="slot_edit_shared_text_hint">Используйте {{word}}, чтобы вставить текст, отправленный в Not App</string>
+    <string name="slot_edit_intent_label">Intent URI</string>
+    <string name="slot_edit_intent_placeholder">intent://...#Intent;...end</string>
+    <string name="slot_edit_label_field">Название</string>
+    <string name="slot_edit_icon_field">Иконка (эмодзи, необязательно)</string>
+    <string name="slot_edit_icon_hint_app">Оставьте пустым, чтобы использовать иконку самого приложения</string>
+    <string name="slot_edit_icon_hint_other">Оставьте пустым для автоматического значка с буквой</string>
+    <string name="slot_edit_color_label">Цвет</string>
+
+    <!-- Диалог выбора приложения -->
+    <string name="app_picker_title_fill">Заполнить слоты приложениями</string>
+    <string name="app_picker_title_choose">Выбрать приложение</string>
+    <string name="app_picker_search">Поиск приложений</string>
+    <plurals name="app_picker_fill_slots">
+        <item quantity="one">Заполнить %1$d слот</item>
+        <item quantity="few">Заполнить %1$d слота</item>
+        <item quantity="many">Заполнить %1$d слотов</item>
+        <item quantity="other">Заполнить %1$d слота</item>
+    </plurals>
+
+    <!-- QuickPick -->
+    <string name="quick_pick_configure_desc">Настройки</string>
+    <string name="quick_pick_send_to">Отправить \"%1$s\" в:</string>
 </resources>

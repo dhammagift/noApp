@@ -13,15 +13,18 @@ Instead of cluttering your home screen with dozens of app shortcuts, **Not App**
 Choose your interaction style:
 
 ### LIST Mode (Default)
-Tap the app icon to open — it brings up your full shortcut list in a sleek bottom sheet. Long tap for direct OS shortcuts to individual items.
+Tapping the app icon brings up your full shortcut list in a sleek bottom sheet. Long tap for direct OS shortcuts to individual items.
 
 ### DIRECT Mode
-Tap the app icon to open — it launches your primary shortcut instantly, no UI, no delay. Long tap for shortcuts to your backups and alternatives, managed by the OS.
+Tapping the app icon launches your primary shortcut instantly, no UI, no delay. Long tap for shortcuts to your backups and alternatives, managed by the OS.
+
+### MIX Mode
+Tapping the app icon launches your primary shortcut instantly, same as DIRECT — but your full shortcut list also opens on top of it, so the rest of your items are always one tap away. Long tap still works too, managed by the OS.
 
 ## Features
 
 - **Unlimited shortcuts**: App launches, URLs, custom intents — configure as many as you need
-- **Two interaction modes**: LIST for exploration, DIRECT for speed
+- **Three interaction modes**: LIST for exploration, DIRECT for speed, MIX for both at once
 - **Drag-to-reorder**: Arrange your shortcuts exactly how you want them
 - **Customizable icons**: Emoji badges, colored labels, or the original app icons
 - **Smart sharing**: Share text directly to your shortcuts — use `{{word}}` placeholders in URLs to dynamically insert shared content

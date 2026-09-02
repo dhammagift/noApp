@@ -1,6 +1,11 @@
 <resources>
     <style name="Theme.NoApp" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@android:color/white</item>
+        <!-- MainActivity is the target of every launcher tap, including DIRECT/MIX/LIST
+             dispatches that finish() before ever drawing real content — without this the OS
+             "starting window" (a themed placeholder) flashes on screen first, which reads as
+             an unwanted splash even in modes that show no UI at all. -->
+        <item name="android:windowDisablePreview">true</item>
     </style>
 
     <!-- QuickPickActivity: lets whatever was on screen show through behind the sheet

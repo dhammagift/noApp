@@ -66,14 +66,18 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import com.noapp.container.R
 import com.noapp.container.icon.AndroidIcon
 import com.noapp.container.icon.BoltIcon
 import com.noapp.container.icon.ExtensionIcon
 import com.noapp.container.icon.LinkIcon
 import com.noapp.container.icon.SlotIcon
+import com.noapp.container.icon.displayName
 import com.noapp.container.model.AppMode
 import com.noapp.container.model.ShortcutSlot
 import com.noapp.container.model.SlotType
@@ -85,13 +89,6 @@ private fun SlotType.icon(): ImageVector = when (this) {
     SlotType.URL -> LinkIcon
     SlotType.INTENT -> BoltIcon
     SlotType.CUSTOM -> ExtensionIcon
-}
-
-private fun SlotType.displayName() = when (this) {
-    SlotType.APP -> "App"
-    SlotType.URL -> "URL"
-    SlotType.INTENT -> "Intent"
-    SlotType.CUSTOM -> "Custom"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -110,6 +107,8 @@ fun ConfigScreen(
     val dragState = rememberSlotDragState(slots)
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val undoLabel = stringResource(R.string.common_undo)
 
     fun removeWithUndo(previous: List<ShortcutSlot>, updated: List<ShortcutSlot>, message: String) {
         // previous is a live SnapshotStateList reference (see slots: List<ShortcutSlot> above) —
@@ -118,7 +117,7 @@ fun ConfigScreen(
         val previousSnapshot = previous.toList()
         onSlotsChanged(updated)
         scope.launch {
-            val result = snackbarHostState.showSnackbar(message, actionLabel = "Undo", duration = SnackbarDuration.Short)
+            val result = snackbarHostState.showSnackbar(message, actionLabel = undoLabel, duration = SnackbarDuration.Short)
             if (result == SnackbarResult.ActionPerformed) {
                 onSlotsChanged(previousSnapshot)
             }
@@ -129,27 +128,42 @@ fun ConfigScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Not App") },
+                title = { Text(stringResource(R.string.app_name)) },
                 actions = {
+                    val defaultItemName = stringResource(R.string.config_default_item)
                     AssistChip(
                         onClick = {
-                            val newMode = if (mode == AppMode.LIST) AppMode.DIRECT else AppMode.LIST
+                            val newMode = when (mode) {
+                                AppMode.LIST -> AppMode.DIRECT
+                                AppMode.DIRECT -> AppMode.MIX
+                                AppMode.MIX -> AppMode.LIST
+                            }
                             onModeChanged(newMode)
                             scope.launch {
-                                val message = if (newMode == AppMode.DIRECT) {
-                                    val label = slots.getOrNull(0)?.label?.ifBlank { null } ?: "the first item"
-                                    "Direct mode — tap now opens \"$label\" directly"
-                                } else {
-                                    "List mode — tap now shows your items"
+                                val label = slots.getOrNull(0)?.label?.ifBlank { null } ?: defaultItemName
+                                val message = when (newMode) {
+                                    AppMode.DIRECT -> context.getString(R.string.config_snackbar_direct, label)
+                                    AppMode.MIX -> context.getString(R.string.config_snackbar_mix, label)
+                                    AppMode.LIST -> context.getString(R.string.config_snackbar_list)
                                 }
                                 snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
                             }
                         },
-                        label = { Text(if (mode == AppMode.LIST) "☰ List" else "▶ Direct") }
+                        label = {
+                            Text(
+                                stringResource(
+                                    when (mode) {
+                                        AppMode.LIST -> R.string.config_mode_list
+                                        AppMode.DIRECT -> R.string.config_mode_direct
+                                        AppMode.MIX -> R.string.config_mode_mix
+                                    }
+                                )
+                            )
+                        }
                     )
-                    TextButton(onClick = { showFillDialog = true }) { Text("Fill") }
+                    TextButton(onClick = { showFillDialog = true }) { Text(stringResource(R.string.config_fill)) }
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.config_settings_desc))
                     }
                 }
             )
@@ -220,25 +234,29 @@ fun ConfigScreen(
                 ) {
                     Icon(
                         Icons.Default.Add,
-                        contentDescription = "Add item",
+                        contentDescription = stringResource(R.string.config_add_item_desc),
                         modifier = Modifier.graphicsLayer { rotationZ = fabRotation }
                     )
                 }
             }
         }
     ) { padding ->
+        val notConfiguredLabel = stringResource(R.string.config_not_configured)
+        val deleteDesc = stringResource(R.string.config_delete_desc)
+        val reorderDesc = stringResource(R.string.config_reorder_desc)
+        val mainPositionLabel = stringResource(R.string.config_position_main)
         LazyColumn(Modifier.padding(padding).fillMaxSize()) {
             itemsIndexed(dragState.items, key = { _, d -> d.stableKey }) { index, draggable ->
                 val slot = draggable.slot
                 val isDragging = dragState.draggedIndex == index
-                val positionLabel = if (mode == AppMode.DIRECT && index == 0) "Main · tap icon" else "Item ${index + 1}"
+                val positionLabel = if (mode != AppMode.LIST && index == 0) mainPositionLabel else stringResource(R.string.common_item_n, index + 1)
                 val dismissState = rememberSwipeToDismissBoxState(
                     confirmValueChange = { value ->
                         if (value != SwipeToDismissBoxValue.Settled) {
                             removeWithUndo(
                                 previous = slots,
                                 updated = slots.filterIndexed { i, _ -> i != index }.mapIndexed { i, s -> s.copy(id = i) },
-                                message = "Removed \"${slot.label.ifBlank { positionLabel }}\""
+                                message = context.getString(R.string.config_removed_named, slot.label.ifBlank { positionLabel })
                             )
                         }
                         true
@@ -251,7 +269,7 @@ fun ConfigScreen(
                             Modifier.fillMaxSize().background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = 20.dp),
                             contentAlignment = Alignment.CenterEnd
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onErrorContainer)
+                            Icon(Icons.Default.Delete, contentDescription = deleteDesc, tint = MaterialTheme.colorScheme.onErrorContainer)
                         }
                     }
                 ) {
@@ -259,7 +277,7 @@ fun ConfigScreen(
                         headlineContent = { Text(slot.label.ifBlank { positionLabel }) },
                         supportingContent = {
                             Text(
-                                "${slot.type?.name ?: "Not configured"} · $positionLabel",
+                                "${slot.type?.displayName() ?: notConfiguredLabel} · $positionLabel",
                                 style = MaterialTheme.typography.bodySmall
                             )
                         },
@@ -273,19 +291,19 @@ fun ConfigScreen(
                                             removeWithUndo(
                                                 previous = slots,
                                                 updated = slots.toMutableList().also { it[index] = ShortcutSlot(id = index) },
-                                                message = "Cleared \"${slot.label.ifBlank { positionLabel }}\""
+                                                message = context.getString(R.string.config_cleared_named, slot.label.ifBlank { positionLabel })
                                             )
                                         } else {
                                             removeWithUndo(
                                                 previous = slots,
                                                 updated = slots.filterIndexed { i, _ -> i != index }.mapIndexed { i, s -> s.copy(id = i) },
-                                                message = "Removed $positionLabel"
+                                                message = context.getString(R.string.config_removed_plain, positionLabel)
                                             )
                                         }
                                     }
                                 )
                                 Spacer(Modifier.width(16.dp))
-                                Icon(Icons.Default.Menu, contentDescription = "Drag to reorder")
+                                Icon(Icons.Default.Menu, contentDescription = reorderDesc)
                             }
                         },
                         modifier = Modifier

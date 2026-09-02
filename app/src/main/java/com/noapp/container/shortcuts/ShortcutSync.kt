@@ -6,6 +6,7 @@ import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.noapp.container.MainActivity
+import com.noapp.container.R
 import com.noapp.container.icon.iconBitmapFor
 import com.noapp.container.icon.monogramBitmap
 import com.noapp.container.model.AppMode
@@ -27,9 +28,10 @@ private const val CONFIGURE_SHORTCUT_ID = "configure"
  * opts out of that (Settings toggle): then the whole budget goes to real items,
  * and getting back to Settings relies on the brief gear shown on each dispatch
  * (see [GearOverlayService]) instead of a long-press entry.
- * AppMode.LIST: a plain tap always shows the full list (which has its own
- * "Configure" row), so no reserved entry is needed — the whole budget goes to
- * real shortcuts, taken in the user's configured order.
+ * AppMode.LIST and AppMode.MIX: a plain tap always shows the full list (which
+ * has its own "Configure" row — MIX shows it on top of slot 0's dispatch), so
+ * no reserved entry is needed — the whole budget goes to real shortcuts, taken
+ * in the user's configured order.
  */
 object ShortcutSync {
     fun sync(context: Context, mode: AppMode, slots: List<ShortcutSlot>, useAllSlotsInDirectMode: Boolean = false) {
@@ -45,7 +47,7 @@ object ShortcutSync {
                     addAll(auxSlots.take((budget - size).coerceAtLeast(0)).map { shortcutFor(context, it) })
                 }
             }
-            AppMode.LIST -> {
+            AppMode.LIST, AppMode.MIX -> {
                 slots.filter { it.isConfigured }.take(budget).map { shortcutFor(context, it) }
             }
         }
@@ -55,7 +57,7 @@ object ShortcutSync {
 
     private fun configureShortcut(context: Context): ShortcutInfoCompat =
         ShortcutInfoCompat.Builder(context, CONFIGURE_SHORTCUT_ID)
-            .setShortLabel("Configure")
+            .setShortLabel(context.getString(R.string.shortcut_configure_label))
             .setIcon(IconCompat.createWithBitmap(monogramBitmap("⚙", "#3C4043", SHORTCUT_ICON_SIZE_PX)))
             .setIntent(
                 Intent(context, MainActivity::class.java)
@@ -71,7 +73,7 @@ object ShortcutSync {
             .putExtra(EXTRA_SLOT_ID, slot.id)
 
         return ShortcutInfoCompat.Builder(context, "slot_${slot.id}")
-            .setShortLabel(slot.label.ifBlank { "Item ${slot.id + 1}" })
+            .setShortLabel(slot.label.ifBlank { context.getString(R.string.common_item_n, slot.id + 1) })
             .setIcon(IconCompat.createWithBitmap(iconBitmapFor(context, slot, SHORTCUT_ICON_SIZE_PX)))
             .setIntent(intent)
             .build()

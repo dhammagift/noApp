@@ -63,16 +63,17 @@ private const val GITHUB_URL = "https://github.com/dhammagift/noApp"
 // TODO: replace with a real hosted privacy policy page before publishing to the Play Store
 private const val PRIVACY_POLICY_URL = "https://github.com/dhammagift/noApp/blob/main/PRIVACY.md"
 
-private fun IconVariant.displayName() = when (id) {
-    "default" -> "Default"
-    "material" -> "Material"
-    "bolt" -> "Bolt"
-    "boost" -> "Boost"
-    "electric" -> "Electric"
-    "flash" -> "Flash"
-    "sankha_flat" -> "Shell"
-    "sankha_3d" -> "Shell 3D"
-    "sankha_bckgr" -> "Shell BG"
+@Composable
+private fun IconVariant.displayName(): String = when (id) {
+    "default" -> stringResource(R.string.icon_variant_default)
+    "material" -> stringResource(R.string.icon_variant_material)
+    "bolt" -> stringResource(R.string.icon_variant_bolt)
+    "boost" -> stringResource(R.string.icon_variant_boost)
+    "electric" -> stringResource(R.string.icon_variant_electric)
+    "flash" -> stringResource(R.string.icon_variant_flash)
+    "sankha_flat" -> stringResource(R.string.icon_variant_sankha_flat)
+    "sankha_3d" -> stringResource(R.string.icon_variant_sankha_3d)
+    "sankha_bckgr" -> stringResource(R.string.icon_variant_sankha_bckgr)
     else -> id
 }
 
@@ -94,9 +95,9 @@ fun SettingsScreen(
         runCatching {
             context.contentResolver.openOutputStream(uri)?.use { it.write(ConfigStore.toJson(config).toByteArray()) }
         }.onSuccess {
-            Toast.makeText(context, "Exported", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_exported), Toast.LENGTH_SHORT).show()
         }.onFailure {
-            Toast.makeText(context, "Export failed: ${it.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_export_failed, it.message), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -110,9 +111,9 @@ fun SettingsScreen(
             ConfigStore.fromJson(json)
         }.onSuccess { imported ->
             onImportConfig(imported)
-            Toast.makeText(context, "Imported", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_imported), Toast.LENGTH_SHORT).show()
         }.onFailure {
-            Toast.makeText(context, "Import failed: ${it.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_import_failed, it.message), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -224,7 +225,7 @@ fun SettingsScreen(
                     if (ShortcutManagerCompat.isRequestPinShortcutSupported(context)) {
                         ShortcutManagerCompat.requestPinShortcut(context, ShortcutSync.shortcutFor(context, slot), null)
                     } else {
-                        Toast.makeText(context, "Your launcher doesn't support pinning shortcuts", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.toast_pin_unsupported), Toast.LENGTH_SHORT).show()
                     }
                 }
             )
@@ -237,7 +238,7 @@ fun SettingsScreen(
                         Intent.createChooser(
                             Intent(Intent.ACTION_SEND)
                                 .setType("text/plain")
-                                .putExtra(Intent.EXTRA_TEXT, "Check out Not App: $GITHUB_URL"),
+                                .putExtra(Intent.EXTRA_TEXT, context.getString(R.string.settings_share_text, GITHUB_URL)),
                             null
                         )
                     )
@@ -285,7 +286,7 @@ fun SettingsScreen(
             }
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_version)) },
-                supportingContent = { Text(pkgInfo?.versionName ?: "unknown") }
+                supportingContent = { Text(pkgInfo?.versionName ?: stringResource(R.string.settings_version_unknown)) }
             )
         }
     }

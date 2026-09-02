@@ -24,7 +24,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.noapp.container.R
 import com.noapp.container.icon.SlotIcon
 import com.noapp.container.model.ShortcutSlot
 import com.noapp.container.shortcuts.ActionDispatcher
@@ -54,12 +56,12 @@ fun QuickPickSheet(
         Column(Modifier.padding(bottom = 24.dp)) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.End) {
                 IconButton(onClick = onConfigure) {
-                    Icon(Icons.Default.Settings, contentDescription = "Configure")
+                    Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.quick_pick_configure_desc))
                 }
             }
             if (sharedText != null) {
                 Text(
-                    "Send “$sharedText” to:",
+                    stringResource(R.string.quick_pick_send_to, sharedText),
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                 )
@@ -67,7 +69,7 @@ fun QuickPickSheet(
             LazyColumn(Modifier.heightIn(max = maxListHeight)) {
                 items(slots, key = { it.id }) { slot ->
                     ListItem(
-                        headlineContent = { Text(slot.label.ifBlank { "Item ${slot.id + 1}" }) },
+                        headlineContent = { Text(slot.label.ifBlank { stringResource(R.string.common_item_n, slot.id + 1) }) },
                         leadingContent = { SlotIcon(slot, size = 32.dp) },
                         modifier = Modifier.clickable {
                             ActionDispatcher.execute(context, slot, sharedText)

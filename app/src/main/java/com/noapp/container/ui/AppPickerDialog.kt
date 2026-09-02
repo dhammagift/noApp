@@ -25,7 +25,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.noapp.container.R
 import com.noapp.container.icon.AppIcon
 
 private data class InstalledApp(val packageName: String, val label: String)
@@ -58,13 +61,13 @@ fun AppPickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (multiSelect) "Fill slots from apps" else "Choose app") },
+        title = { Text(stringResource(if (multiSelect) R.string.app_picker_title_fill else R.string.app_picker_title_choose)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text("Search apps") },
+                    placeholder = { Text(stringResource(R.string.app_picker_search)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -97,13 +100,13 @@ fun AppPickerDialog(
                 TextButton(
                     onClick = { onConfirm(selected.map { it.packageName to it.label }) },
                     enabled = selected.isNotEmpty()
-                ) { Text("Fill ${selected.size} slot${if (selected.size == 1) "" else "s"}") }
+                ) { Text(pluralStringResource(R.plurals.app_picker_fill_slots, selected.size, selected.size)) }
             } else {
-                TextButton(onClick = onDismiss) { Text("Close") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_close)) }
             }
         },
         dismissButton = if (multiSelect) {
-            { TextButton(onClick = onDismiss) { Text("Cancel") } }
+            { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } }
         } else null
     )
 }

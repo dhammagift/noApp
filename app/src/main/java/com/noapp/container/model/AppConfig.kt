@@ -7,8 +7,13 @@ package com.noapp.container.model
  * interaction.
  * DIRECT: a plain tap launches slot 0 straight away (no UI), and the rest are
  * OS long-press shortcuts — capped at the device's shortcut budget.
+ * MIX: a plain tap launches slot 0 straight away, same as DIRECT, but also
+ * shows the same list sheet DIRECT would only get via the gear overlay — always,
+ * on top of whatever slot 0 opened. Shares DIRECT's "slot 0 is Main" shape but
+ * shares LIST's shortcut budget (no reserved Configure entry needed, since the
+ * sheet's own header already has one).
  */
-enum class AppMode { LIST, DIRECT }
+enum class AppMode { LIST, DIRECT, MIX }
 
 data class AppConfig(
     val mode: AppMode = AppMode.LIST,

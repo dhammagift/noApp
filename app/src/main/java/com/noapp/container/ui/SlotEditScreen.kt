@@ -36,7 +36,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.noapp.container.R
+import com.noapp.container.icon.displayName
 import com.noapp.container.model.AppMode
 import com.noapp.container.model.ShortcutSlot
 import com.noapp.container.model.SlotType
@@ -53,7 +56,11 @@ fun SlotEditScreen(mode: AppMode, slot: ShortcutSlot, onSave: (ShortcutSlot) -> 
     // extra "Choose app" tap and open the picker immediately.
     var showAppPicker by remember { mutableStateOf(slot.type == SlotType.APP && slot.param.isBlank()) }
 
-    val title = if (mode == AppMode.DIRECT && slot.id == 0) "Edit Main action" else "Edit Item ${slot.id + 1}"
+    val title = if (mode != AppMode.LIST && slot.id == 0) {
+        stringResource(R.string.slot_edit_title_main)
+    } else {
+        stringResource(R.string.slot_edit_title_item, slot.id + 1)
+    }
 
     Scaffold(
         topBar = {
@@ -61,42 +68,43 @@ fun SlotEditScreen(mode: AppMode, slot: ShortcutSlot, onSave: (ShortcutSlot) -> 
                 title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onCancel) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Cancel")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.slot_edit_cancel_desc))
                     }
                 }
             )
         }
     ) { padding ->
         Column(Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
-            Text("Type", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.slot_edit_type_label), style = MaterialTheme.typography.labelLarge)
             Row(Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SlotType.entries.forEach { t ->
                     FilterChip(
                         selected = type == t,
                         onClick = { type = t; param = "" },
-                        label = { Text(t.name) }
+                        label = { Text(t.displayName()) }
                     )
                 }
             }
 
+            val sharedTextHint = stringResource(R.string.slot_edit_shared_text_hint)
             when (type) {
                 SlotType.APP -> OutlinedButton(onClick = { showAppPicker = true }) {
-                    Text(if (param.isBlank()) "Choose app" else param)
+                    Text(param.ifBlank { stringResource(R.string.slot_edit_choose_app) })
                 }
                 SlotType.URL -> OutlinedTextField(
                     value = param,
                     onValueChange = { param = it },
-                    label = { Text("URL") },
-                    placeholder = { Text("https://wikipedia.org/wiki/{{word}}") },
-                    supportingText = { Text("Use {{word}} to insert text shared into Not App") },
+                    label = { Text(stringResource(R.string.slot_edit_url_label)) },
+                    placeholder = { Text(stringResource(R.string.slot_edit_url_placeholder)) },
+                    supportingText = { Text(sharedTextHint) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 SlotType.INTENT, SlotType.CUSTOM -> OutlinedTextField(
                     value = param,
                     onValueChange = { param = it },
-                    label = { Text("Intent URI") },
-                    placeholder = { Text("intent://...#Intent;...end") },
-                    supportingText = { Text("Use {{word}} to insert text shared into Not App") },
+                    label = { Text(stringResource(R.string.slot_edit_intent_label)) },
+                    placeholder = { Text(stringResource(R.string.slot_edit_intent_placeholder)) },
+                    supportingText = { Text(sharedTextHint) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 null -> {}
@@ -106,7 +114,7 @@ fun SlotEditScreen(mode: AppMode, slot: ShortcutSlot, onSave: (ShortcutSlot) -> 
             OutlinedTextField(
                 value = label,
                 onValueChange = { label = it },
-                label = { Text("Label") },
+                label = { Text(stringResource(R.string.slot_edit_label_field)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -114,15 +122,22 @@ fun SlotEditScreen(mode: AppMode, slot: ShortcutSlot, onSave: (ShortcutSlot) -> 
             OutlinedTextField(
                 value = customIcon,
                 onValueChange = { customIcon = it },
-                label = { Text("Icon (emoji, optional)") },
+                label = { Text(stringResource(R.string.slot_edit_icon_field)) },
                 placeholder = { Text("🚀") },
-                supportingText = { Text(if (type == SlotType.APP) "Leave blank to use the app's own icon" else "Leave blank for an auto-generated letter badge") },
+                supportingText = {
+                    Text(
+                        stringResource(
+                            if (type == SlotType.APP) R.string.slot_edit_icon_hint_app
+                            else R.string.slot_edit_icon_hint_other
+                        )
+                    )
+                },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(Modifier.height(16.dp))
-            Text("Color", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.slot_edit_color_label), style = MaterialTheme.typography.labelLarge)
             Row(Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ShortcutSlot.PALETTE.forEach { hex ->
                     val selected = color == hex
@@ -138,14 +153,14 @@ fun SlotEditScreen(mode: AppMode, slot: ShortcutSlot, onSave: (ShortcutSlot) -> 
 
             Spacer(Modifier.height(24.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onCancel) { Text("Cancel") }
+                TextButton(onClick = onCancel) { Text(stringResource(R.string.common_cancel)) }
                 Spacer(Modifier.width(8.dp))
                 Button(
                     enabled = type != null && param.isNotBlank(),
                     onClick = {
                         onSave(slot.copy(type = type, label = label, color = color, param = param, customIcon = customIcon))
                     }
-                ) { Text("Save") }
+                ) { Text(stringResource(R.string.common_save)) }
             }
         }
     }
