@@ -5,6 +5,7 @@
     <string name="settings_title">Settings</string>
     <string name="settings_app_icon">App icon</string>
     <string name="settings_app_icon_hint">Some launchers take a moment (or a trip back to the home screen) to show the new icon.</string>
+    <string name="settings_language">Language</string>
     <string name="settings_use_all_slots">Use all shortcut slots in Direct mode</string>
     <string name="settings_use_all_slots_on">No slot reserved for Configure — long-press shows only your items. A translucent gear flashes on launch instead.</string>
     <string name="settings_use_all_slots_off">One shortcut slot is reserved for a permanent Configure entry</string>

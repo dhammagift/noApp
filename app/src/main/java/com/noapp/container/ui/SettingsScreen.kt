@@ -2,6 +2,7 @@ package com.noapp.container.ui
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings as AndroidSettings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -175,6 +176,19 @@ fun SettingsScreen(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
             HorizontalDivider()
+            // Android's per-app language override only exists as of API 33 (Tiramisu) — no
+            // custom in-app locale switcher below that, the app just follows the system language.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.settings_language)) },
+                    modifier = Modifier.clickable {
+                        context.startActivity(
+                            Intent(AndroidSettings.ACTION_APP_LOCALE_SETTINGS, Uri.parse("package:${context.packageName}"))
+                        )
+                    }
+                )
+                HorizontalDivider()
+            }
             val firstSlot = config.slots.getOrNull(0)?.takeIf { it.isConfigured }
             if (config.mode == AppMode.DIRECT) {
                 ListItem(
