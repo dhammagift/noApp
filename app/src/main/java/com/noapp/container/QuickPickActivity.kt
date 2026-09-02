@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.noapp.container.data.ConfigStore
+import com.noapp.container.model.AppMode
 import com.noapp.container.shortcuts.EXTRA_OPEN_CONFIG
 import com.noapp.container.ui.QuickPickSheet
 import com.noapp.container.ui.theme.NoAppTheme
@@ -28,7 +29,8 @@ class QuickPickActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val sharedText = intent.getStringExtra(EXTRA_SHARED_TEXT)
-        val slots = ConfigStore.load(this).slots.filter { it.isConfigured }
+        val config = ConfigStore.load(this)
+        val slots = config.slots.filter { it.isConfigured }
 
         if (slots.isEmpty() && sharedText == null) {
             startActivity(Intent(this, MainActivity::class.java).putExtra(EXTRA_OPEN_CONFIG, true))
@@ -41,6 +43,10 @@ class QuickPickActivity : ComponentActivity() {
                 QuickPickSheet(
                     slots = slots,
                     sharedText = sharedText,
+                    // Only the true MIX dispatch (plain-tap slot-0 launch + list) gets the
+                    // collapse-to-peek affordance — a share-target sheet has no slot-0 side
+                    // effect to avoid re-triggering, so it keeps the plain dismiss-and-finish.
+                    allowPeek = config.mode == AppMode.MIX && sharedText == null,
                     onConfigure = {
                         startActivity(
                             Intent(this, MainActivity::class.java)

@@ -4,12 +4,12 @@
     <string name="settings_app_icon_hint">Некоторым лаунчерам нужно время (или возврат на главный экран), чтобы показать новую иконку.</string>
     <string name="settings_language">Язык</string>
     <string name="settings_use_all_slots">Использовать все слоты шорткатов в режиме Direct</string>
-    <string name="settings_use_all_slots_on">Слот под \"Настройки\" не резервируется — в long-press меню только ваши пункты. Вместо этого при запуске на секунду появляется полупрозрачная шестерёнка.</string>
-    <string name="settings_use_all_slots_off">Один слот шортката зарезервирован под постоянный пункт \"Настройки\"</string>
+    <string name="settings_use_all_slots_on">Слот под \"Настройки\" не резервируется — в меню долгого нажатия только ваши ярлыки. Вместо этого при запуске на секунду появляется полупрозрачная шестерёнка.</string>
+    <string name="settings_use_all_slots_off">Один слот шортката зарезервирован под постоянный ярлык \"Настройки\"</string>
     <string name="settings_pin_title">Закрепить \"%1$s\" на рабочем столе</string>
-    <string name="settings_pin_default_item">первый пункт</string>
-    <string name="settings_pin_hint_enabled">Добавляет отдельную иконку рядом с Not App, которая сразу запускает этот пункт</string>
-    <string name="settings_pin_hint_disabled">Настройте первый пункт, чтобы включить эту опцию</string>
+    <string name="settings_pin_default_item">первый ярлык</string>
+    <string name="settings_pin_hint_enabled">Добавляет отдельную иконку рядом с Not App, которая сразу запускает этот ярлык</string>
+    <string name="settings_pin_hint_disabled">Настройте первый ярлык, чтобы включить эту опцию</string>
     <string name="settings_share">Поделиться</string>
     <string name="settings_share_text">Посмотри Not App: %1$s</string>
     <string name="settings_rate_app">Оценить приложение</string>
@@ -36,7 +36,7 @@
     <string name="common_save">Сохранить</string>
     <string name="common_close">Закрыть</string>
     <string name="common_undo">Отменить</string>
-    <string name="common_item_n">Пункт %1$d</string>
+    <string name="common_item_n">Ярлык %1$d</string>
 
     <!-- Варианты иконки приложения (Настройки > Иконка приложения) -->
     <string name="icon_variant_default">Обычная</string>
@@ -55,13 +55,12 @@
     <string name="config_mode_list">☰ Список</string>
     <string name="config_mode_direct">▶ Прямой</string>
     <string name="config_mode_mix">◫ Микс</string>
+    <string name="config_mode_list_desc">Тап по иконке показывает все ярлыки во всплывающем списке. Долгое нажатие на иконку открывает меню с быстрым доступом к каждому ярлыку.</string>
+    <string name="config_mode_direct_desc">Тап по иконке сразу запускает первый ярлык. Долгое нажатие на иконку открывает меню с быстрым доступом к остальным ярлыкам (и ярлыком \"Настройки\", если в Настройках не включено \"использовать все слоты шорткатов\").</string>
+    <string name="config_mode_mix_desc">Тап по иконке сразу запускает первый ярлык и одновременно показывает список поверх него. Долгое нажатие на иконку открывает меню с быстрым доступом к каждому ярлыку. Смахните список вниз, чтобы свернуть его в маленькую кнопку вместо закрытия — нажмите на неё, чтобы развернуть список снова.</string>
     <string name="config_fill">Заполнить</string>
     <string name="config_settings_desc">Настройки</string>
-    <string name="config_snackbar_direct">Прямой режим — тап теперь сразу открывает \"%1$s\"</string>
-    <string name="config_snackbar_list">Режим списка — тап теперь показывает ваши пункты</string>
-    <string name="config_snackbar_mix">Режим Микс — тап теперь открывает \"%1$s\" и показывает ваши пункты поверх</string>
-    <string name="config_default_item">первый пункт</string>
-    <string name="config_add_item_desc">Добавить пункт</string>
+    <string name="config_add_item_desc">Добавить ярлык</string>
     <string name="slot_type_app">Приложение</string>
     <string name="slot_type_url">URL</string>
     <string name="slot_type_intent">Intent</string>
@@ -74,9 +73,9 @@
     <string name="config_cleared_named">Очищено \"%1$s\"</string>
     <string name="config_removed_plain">Удалено: %1$s</string>
 
-    <!-- Экран редактирования пункта -->
+    <!-- Экран редактирования ярлыка -->
     <string name="slot_edit_title_main">Редактирование главного действия</string>
-    <string name="slot_edit_title_item">Редактирование пункта %1$d</string>
+    <string name="slot_edit_title_item">Редактирование ярлыка %1$d</string>
     <string name="slot_edit_cancel_desc">Отмена</string>
     <string name="slot_edit_type_label">Тип</string>
     <string name="slot_edit_choose_app">Выбрать приложение</string>
@@ -105,4 +104,5 @@
     <!-- QuickPick -->
     <string name="quick_pick_configure_desc">Настройки</string>
     <string name="quick_pick_send_to">Отправить \"%1$s\" в:</string>
+    <string name="quick_pick_reopen_desc">Показать список</string>
 </resources>
