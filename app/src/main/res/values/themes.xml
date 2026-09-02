@@ -11,5 +11,9 @@
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowIsFloating">false</item>
         <item name="android:backgroundDimEnabled">false</item>
+        <!-- Skip the OS "starting window" preview (splash) for this activity — it's a
+             translucent popup, not a real app switch, so a flash-then-list feel is wrong. -->
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:windowAnimationStyle">@null</item>
     </style>
 </resources>

@@ -65,6 +65,7 @@ private const val PRIVACY_POLICY_URL = "https://github.com/dhammagift/noApp/blob
 
 private fun IconVariant.displayName() = when (id) {
     "default" -> "Default"
+    "material" -> "Material"
     "bolt" -> "Bolt"
     "boost" -> "Boost"
     "electric" -> "Electric"

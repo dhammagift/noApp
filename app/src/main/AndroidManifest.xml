@@ -20,19 +20,18 @@
         android:label="@string/app_name"
         android:theme="@style/Theme.NoApp">
 
+        <!-- MainActivity is never itself a launcher entry point and its own component is
+             NEVER enabled/disabled (see icon/AppIconSwitcher.kt) — GearOverlayService,
+             QuickPickActivity, and ShortcutSync all target it by explicit component, and an
+             explicit Intent to a disabled component fails to launch. Every launcher icon,
+             including the default look, is one of the activity-alias entries below instead. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@style/Theme.NoApp">
 
-            <!-- Normal launcher tap -->
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-
-            <!-- Sharing API: lets other apps share plain text into No App -->
+            <!-- Sharing API: lets other apps share plain text into Not App -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -47,9 +46,33 @@
             android:exported="false"
             android:theme="@style/Theme.NoApp.Transparent" />
 
-        <!-- Alternate launcher icons (Settings > App icon). Exactly one of MainActivity's own
-             component and these aliases is enabled at a time (see icon/AppIconSwitcher.kt);
-             all target MainActivity, none add a real entry point of their own. -->
+        <!-- Launcher icons (Settings > App icon). Exactly one of these aliases is enabled at
+             a time (see icon/AppIconSwitcher.kt); all target MainActivity, which itself stays
+             enabled and entry-point-free throughout. -->
+        <activity-alias
+            android:name=".IconDefault"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconMaterial"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_material"
+            android:roundIcon="@mipmap/ic_launcher_material"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
         <activity-alias
             android:name=".IconBolt"
             android:enabled="false"
