@@ -1,0 +1,24 @@
+<resources>
+    <string name="settings_title">Настройки</string>
+    <string name="settings_app_icon">Иконка приложения</string>
+    <string name="settings_app_icon_hint">Некоторым лаунчерам нужно время (или возврат на главный экран), чтобы показать новую иконку.</string>
+    <string name="settings_use_all_slots">Использовать все слоты шорткатов в режиме Direct</string>
+    <string name="settings_use_all_slots_on">Слот под \"Настройки\" не резервируется — в long-press меню только ваши пункты. Вместо этого при запуске на секунду появляется полупрозрачная шестерёнка.</string>
+    <string name="settings_use_all_slots_off">Один слот шортката зарезервирован под постоянный пункт \"Настройки\"</string>
+    <string name="settings_pin_title">Закрепить \"%1$s\" на рабочем столе</string>
+    <string name="settings_pin_default_item">первый пункт</string>
+    <string name="settings_pin_hint_enabled">Добавляет отдельную иконку рядом с Not App, которая сразу запускает этот пункт</string>
+    <string name="settings_pin_hint_disabled">Настройте первый пункт, чтобы включить эту опцию</string>
+    <string name="settings_share">Поделиться</string>
+    <string name="settings_rate_app">Оценить приложение</string>
+    <string name="settings_source_code">Исходный код</string>
+    <string name="settings_privacy_policy">Политика конфиденциальности</string>
+    <string name="settings_backup">Резервная копия</string>
+    <string name="settings_restore">Восстановить</string>
+    <string name="settings_version">Версия</string>
+    <string name="settings_overlay_dialog_title">Отображение поверх других приложений</string>
+    <string name="settings_overlay_dialog_text">Чтобы показывать значок настроек поверх запускаемого приложения — вместо пустого экрана или занятого слота шортката — Not App нужно разрешение \"отображение поверх других приложений\". Откроются системные настройки, чтобы его включить.</string>
+    <string name="settings_continue">Продолжить</string>
+    <string name="settings_cancel">Отмена</string>
+    <string name="settings_back">Назад</string>
+</resources>

@@ -2,7 +2,7 @@
 
 A flexible Android launcher app that turns your home screen icon into a customizable command center.
 
-![No App Android Mockup](icons/notApp-android.jpg)
+![Not App Android Mockup](icons/notApp-android.jpg)
 
 ## What is Not App?
 
@@ -13,10 +13,10 @@ Instead of cluttering your home screen with dozens of app shortcuts, **Not App**
 Choose your interaction style:
 
 ### LIST Mode (Default)
-Tap the icon → see all your shortcuts in a sleek bottom sheet menu. Perfect for frequently-used apps, websites, or quick actions without OS limits.
+Tap the app icon to open — it brings up your full shortcut list in a sleek bottom sheet. Long tap for direct OS shortcuts to individual items.
 
 ### DIRECT Mode
-Tap the icon → launches your primary shortcut instantly. No UI, no delay. Long-press the icon for quick access to backups and alternatives — all managed by the OS.
+Tap the app icon to open — it launches your primary shortcut instantly, no UI, no delay. Long tap for shortcuts to your backups and alternatives, managed by the OS.
 
 ## Features
 

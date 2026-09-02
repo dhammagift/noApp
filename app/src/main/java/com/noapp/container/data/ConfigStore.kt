@@ -35,6 +35,7 @@ object ConfigStore {
             .put("mode", config.mode.name)
             .put("slots", arr)
             .put("useAllSlotsInDirectMode", config.useAllSlotsInDirectMode)
+            .put("iconVariant", config.iconVariant)
             .toString()
     }
 
@@ -60,7 +61,8 @@ object ConfigStore {
         AppConfig(
             mode = mode,
             slots = slots.ifEmpty { ShortcutSlot.emptySlots() },
-            useAllSlotsInDirectMode = root.optBoolean("useAllSlotsInDirectMode", false)
+            useAllSlotsInDirectMode = root.optBoolean("useAllSlotsInDirectMode", false),
+            iconVariant = root.optString("iconVariant", "default")
         )
     }.getOrDefault(AppConfig())
 

@@ -88,7 +88,7 @@ fun SlotEditScreen(mode: AppMode, slot: ShortcutSlot, onSave: (ShortcutSlot) -> 
                     onValueChange = { param = it },
                     label = { Text("URL") },
                     placeholder = { Text("https://wikipedia.org/wiki/{{word}}") },
-                    supportingText = { Text("Use {{word}} to insert text shared into No App") },
+                    supportingText = { Text("Use {{word}} to insert text shared into Not App") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 SlotType.INTENT, SlotType.CUSTOM -> OutlinedTextField(
@@ -96,7 +96,7 @@ fun SlotEditScreen(mode: AppMode, slot: ShortcutSlot, onSave: (ShortcutSlot) -> 
                     onValueChange = { param = it },
                     label = { Text("Intent URI") },
                     placeholder = { Text("intent://...#Intent;...end") },
-                    supportingText = { Text("Use {{word}} to insert text shared into No App") },
+                    supportingText = { Text("Use {{word}} to insert text shared into Not App") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 null -> {}

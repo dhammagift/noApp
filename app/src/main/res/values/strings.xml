@@ -1,3 +1,27 @@
 <resources>
-    <string name="app_name">No App</string>
+    <string name="app_name">Not App</string>
+
+    <!-- Settings screen — localized as a representative first pass, not full app coverage yet -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_app_icon">App icon</string>
+    <string name="settings_app_icon_hint">Some launchers take a moment (or a trip back to the home screen) to show the new icon.</string>
+    <string name="settings_use_all_slots">Use all shortcut slots in Direct mode</string>
+    <string name="settings_use_all_slots_on">No slot reserved for Configure — long-press shows only your items. A translucent gear flashes on launch instead.</string>
+    <string name="settings_use_all_slots_off">One shortcut slot is reserved for a permanent Configure entry</string>
+    <string name="settings_pin_title">Pin \"%1$s\" to home screen</string>
+    <string name="settings_pin_default_item">your first item</string>
+    <string name="settings_pin_hint_enabled">Adds a separate icon that launches it directly, next to Not App</string>
+    <string name="settings_pin_hint_disabled">Configure your first item to enable this</string>
+    <string name="settings_share">Share</string>
+    <string name="settings_rate_app">Rate app</string>
+    <string name="settings_source_code">Source code</string>
+    <string name="settings_privacy_policy">Privacy policy</string>
+    <string name="settings_backup">Backup</string>
+    <string name="settings_restore">Restore</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_overlay_dialog_title">Draw over other apps</string>
+    <string name="settings_overlay_dialog_text">To flash a Configure gear over the app it launches — instead of holding you on a blank screen or reserving a shortcut slot — Not App needs the \"draw over other apps\" permission. You\'ll be taken to system settings to turn it on.</string>
+    <string name="settings_continue">Continue</string>
+    <string name="settings_cancel">Cancel</string>
+    <string name="settings_back">Back</string>
 </resources>

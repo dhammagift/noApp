@@ -6,10 +6,17 @@ import android.provider.Settings as AndroidSettings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lock
@@ -21,6 +28,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -31,10 +39,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.compose.foundation.Image
+import com.noapp.container.R
 import com.noapp.container.data.ConfigStore
+import com.noapp.container.icon.ICON_VARIANTS
+import com.noapp.container.icon.IconVariant
 import com.noapp.container.model.AppConfig
 import com.noapp.container.model.AppMode
 import com.noapp.container.shortcuts.ShortcutSync
@@ -44,12 +63,25 @@ private const val GITHUB_URL = "https://github.com/dhammagift/noApp"
 // TODO: replace with a real hosted privacy policy page before publishing to the Play Store
 private const val PRIVACY_POLICY_URL = "https://github.com/dhammagift/noApp/blob/main/PRIVACY.md"
 
+private fun IconVariant.displayName() = when (id) {
+    "default" -> "Default"
+    "bolt" -> "Bolt"
+    "boost" -> "Boost"
+    "electric" -> "Electric"
+    "flash" -> "Flash"
+    "sankha_flat" -> "Shell"
+    "sankha_3d" -> "Shell 3D"
+    "sankha_bckgr" -> "Shell BG"
+    else -> id
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     config: AppConfig,
     onImportConfig: (AppConfig) -> Unit,
     onUseAllSlotsInDirectModeChanged: (Boolean) -> Unit,
+    onIconVariantChanged: (String) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -96,28 +128,61 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
                     }
                 }
             )
         }
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
+            ListItem(headlineContent = { Text(stringResource(R.string.settings_app_icon)) })
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
+            ) {
+                items(ICON_VARIANTS, key = { it.id }) { variant ->
+                    val selected = variant.id == config.iconVariant
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable { onIconVariantChanged(variant.id) }
+                    ) {
+                        Image(
+                            painter = painterResource(variant.previewRes),
+                            contentDescription = variant.displayName(),
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .border(
+                                    width = if (selected) 2.dp else 0.dp,
+                                    color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        )
+                        Text(variant.displayName(), style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+            Text(
+                stringResource(R.string.settings_app_icon_hint),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            HorizontalDivider()
             val firstSlot = config.slots.getOrNull(0)?.takeIf { it.isConfigured }
             if (config.mode == AppMode.DIRECT) {
                 ListItem(
-                    headlineContent = { Text("Use all shortcut slots in Direct mode") },
+                    headlineContent = { Text(stringResource(R.string.settings_use_all_slots)) },
                     supportingContent = {
                         Text(
-                            if (config.useAllSlotsInDirectMode) {
-                                "No slot reserved for Configure — long-press shows only your items. " +
-                                    "A translucent gear flashes on launch instead."
-                            } else {
-                                "One shortcut slot is reserved for a permanent Configure entry"
-                            }
+                            stringResource(
+                                if (config.useAllSlotsInDirectMode) R.string.settings_use_all_slots_on
+                                else R.string.settings_use_all_slots_off
+                            )
                         )
                     },
                     trailingContent = {
@@ -135,12 +200,22 @@ fun SettingsScreen(
                 )
                 HorizontalDivider()
             }
+            val pinDefaultItem = stringResource(R.string.settings_pin_default_item)
             ListItem(
-                headlineContent = { Text("Pin “${firstSlot?.label?.ifBlank { "your first item" } ?: "your first item"}” to home screen") },
+                headlineContent = {
+                    Text(
+                        stringResource(
+                            R.string.settings_pin_title,
+                            firstSlot?.label?.ifBlank { pinDefaultItem } ?: pinDefaultItem
+                        )
+                    )
+                },
                 supportingContent = {
                     Text(
-                        if (firstSlot != null) "Adds a separate icon that launches it directly, next to No App"
-                        else "Configure your first item to enable this"
+                        stringResource(
+                            if (firstSlot != null) R.string.settings_pin_hint_enabled
+                            else R.string.settings_pin_hint_disabled
+                        )
                     )
                 },
                 modifier = Modifier.clickable(enabled = firstSlot != null) {
@@ -154,21 +229,21 @@ fun SettingsScreen(
             )
             HorizontalDivider()
             ListItem(
-                headlineContent = { Text("Share") },
+                headlineContent = { Text(stringResource(R.string.settings_share)) },
                 leadingContent = { Icon(Icons.Default.Share, contentDescription = null) },
                 modifier = Modifier.clickable {
                     context.startActivity(
                         Intent.createChooser(
                             Intent(Intent.ACTION_SEND)
                                 .setType("text/plain")
-                                .putExtra(Intent.EXTRA_TEXT, "Check out No App: $GITHUB_URL"),
+                                .putExtra(Intent.EXTRA_TEXT, "Check out Not App: $GITHUB_URL"),
                             null
                         )
                     )
                 }
             )
             ListItem(
-                headlineContent = { Text("Rate app") },
+                headlineContent = { Text(stringResource(R.string.settings_rate_app)) },
                 leadingContent = { Icon(Icons.Default.Star, contentDescription = null) },
                 modifier = Modifier.clickable {
                     val pkg = context.packageName
@@ -182,13 +257,13 @@ fun SettingsScreen(
                 }
             )
             ListItem(
-                headlineContent = { Text("Source code") },
+                headlineContent = { Text(stringResource(R.string.settings_source_code)) },
                 modifier = Modifier.clickable {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_URL)))
                 }
             )
             ListItem(
-                headlineContent = { Text("Privacy policy") },
+                headlineContent = { Text(stringResource(R.string.settings_privacy_policy)) },
                 leadingContent = { Icon(Icons.Default.Lock, contentDescription = null) },
                 modifier = Modifier.clickable {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_POLICY_URL)))
@@ -196,11 +271,11 @@ fun SettingsScreen(
             )
             HorizontalDivider()
             ListItem(
-                headlineContent = { Text("Backup") },
+                headlineContent = { Text(stringResource(R.string.settings_backup)) },
                 modifier = Modifier.clickable { exportLauncher.launch("noapp-config.json") }
             )
             ListItem(
-                headlineContent = { Text("Restore") },
+                headlineContent = { Text(stringResource(R.string.settings_restore)) },
                 modifier = Modifier.clickable { importLauncher.launch(arrayOf("application/json")) }
             )
             HorizontalDivider()
@@ -208,7 +283,7 @@ fun SettingsScreen(
                 runCatching { context.packageManager.getPackageInfo(context.packageName, 0) }.getOrNull()
             }
             ListItem(
-                headlineContent = { Text("Version") },
+                headlineContent = { Text(stringResource(R.string.settings_version)) },
                 supportingContent = { Text(pkgInfo?.versionName ?: "unknown") }
             )
         }
@@ -217,24 +292,18 @@ fun SettingsScreen(
     if (showOverlayExplainer) {
         AlertDialog(
             onDismissRequest = { showOverlayExplainer = false },
-            title = { Text("Draw over other apps") },
-            text = {
-                Text(
-                    "To flash a Configure gear over the app it launches — instead of holding you " +
-                        "on a blank screen or reserving a shortcut slot — No App needs the \"draw over " +
-                        "other apps\" permission. You'll be taken to system settings to turn it on."
-                )
-            },
+            title = { Text(stringResource(R.string.settings_overlay_dialog_title)) },
+            text = { Text(stringResource(R.string.settings_overlay_dialog_text)) },
             confirmButton = {
                 TextButton(onClick = {
                     showOverlayExplainer = false
                     overlaySettingsLauncher.launch(
                         Intent(AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
                     )
-                }) { Text("Continue") }
+                }) { Text(stringResource(R.string.settings_continue)) }
             },
             dismissButton = {
-                TextButton(onClick = { showOverlayExplainer = false }) { Text("Cancel") }
+                TextButton(onClick = { showOverlayExplainer = false }) { Text(stringResource(R.string.settings_cancel)) }
             }
         )
     }

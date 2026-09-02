@@ -16,5 +16,7 @@ data class AppConfig(
     // DIRECT only: skip reserving one OS shortcut slot for "Configure" so all of the
     // device's shortcut budget goes to real items. Trades that permanent long-press
     // entry for a brief tappable gear shown on every plain-tap dispatch instead.
-    val useAllSlotsInDirectMode: Boolean = false
+    val useAllSlotsInDirectMode: Boolean = false,
+    // Matches an IconVariant.id in icon/AppIconSwitcher.kt — "default" is the plain app icon.
+    val iconVariant: String = "default"
 )

@@ -40,6 +40,101 @@
             </intent-filter>
         </activity>
 
+        <!-- Translucent popup for the LIST-mode plain tap and incoming shares — overlays
+             whatever was on screen instead of a full opaque app switch. -->
+        <activity
+            android:name=".QuickPickActivity"
+            android:exported="false"
+            android:theme="@style/Theme.NoApp.Transparent" />
+
+        <!-- Alternate launcher icons (Settings > App icon). Exactly one of MainActivity's own
+             component and these aliases is enabled at a time (see icon/AppIconSwitcher.kt);
+             all target MainActivity, none add a real entry point of their own. -->
+        <activity-alias
+            android:name=".IconBolt"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_bolt"
+            android:roundIcon="@mipmap/ic_launcher_bolt"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconBoost"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_boost"
+            android:roundIcon="@mipmap/ic_launcher_boost"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconElectric"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_electric"
+            android:roundIcon="@mipmap/ic_launcher_electric"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconFlash"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_flash"
+            android:roundIcon="@mipmap/ic_launcher_flash"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconSankhaFlat"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_sankha_flat"
+            android:roundIcon="@mipmap/ic_launcher_sankha_flat"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconSankha3d"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_sankha_3d"
+            android:roundIcon="@mipmap/ic_launcher_sankha_3d"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconSankhaBckgr"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_sankha_bckgr"
+            android:roundIcon="@mipmap/ic_launcher_sankha_bckgr"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
         <service
             android:name=".shortcuts.GearOverlayService"
             android:exported="false" />

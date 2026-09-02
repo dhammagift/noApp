@@ -22,20 +22,19 @@ import com.noapp.container.shortcuts.EXTRA_SLOT_ID
 import com.noapp.container.shortcuts.GearOverlayService
 import com.noapp.container.shortcuts.ShortcutSync
 import com.noapp.container.ui.ConfigScreen
-import com.noapp.container.ui.QuickPickSheet
 import com.noapp.container.ui.SettingsScreen
 import com.noapp.container.ui.SlotEditScreen
 import com.noapp.container.ui.theme.NoAppTheme
 
 /**
- * No back stack, no navigation-compose: 4 screens, switched by a single sealed state.
+ * No back stack, no navigation-compose: switched by a single sealed state. The
+ * plain-tap LIST/share picker lives in QuickPickActivity instead, not here.
  */
 private sealed class Screen {
     data object Config : Screen()
     data class EditSlot(val index: Int) : Screen()
     data class NewSlot(val type: SlotType) : Screen()
     data object Settings : Screen()
-    data class QuickPick(val sharedText: String?) : Screen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -50,10 +49,11 @@ class MainActivity : ComponentActivity() {
                 var mode by remember { mutableStateOf(initialConfig.mode) }
                 val slots = remember { mutableStateListOf(*initialConfig.slots.toTypedArray()) }
                 var useAllSlotsInDirectMode by remember { mutableStateOf(initialConfig.useAllSlotsInDirectMode) }
-                var screen by remember { mutableStateOf(startScreen(intent, initialConfig)) }
+                var iconVariant by remember { mutableStateOf(initialConfig.iconVariant) }
+                var screen by remember { mutableStateOf<Screen>(Screen.Config) }
 
                 fun persist() {
-                    val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode)
+                    val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant)
                     ConfigStore.save(this, config)
                     ShortcutSync.sync(this, mode, slots.toList(), useAllSlotsInDirectMode)
                 }
@@ -62,6 +62,7 @@ class MainActivity : ComponentActivity() {
                     mode = mode,
                     slots = slots,
                     useAllSlotsInDirectMode = useAllSlotsInDirectMode,
+                    iconVariant = iconVariant,
                     screen = screen,
                     onScreenChange = { screen = it },
                     onSlotsChanged = { updated ->
@@ -77,11 +78,17 @@ class MainActivity : ComponentActivity() {
                         useAllSlotsInDirectMode = value
                         persist()
                     },
+                    onIconVariantChanged = { value ->
+                        iconVariant = value
+                        com.noapp.container.icon.applyIconVariant(this, value)
+                        persist()
+                    },
                     onConfigImported = { imported ->
                         mode = imported.mode
                         slots.clear()
                         slots.addAll(imported.slots)
                         useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode
+                        iconVariant = imported.iconVariant
                         persist()
                     }
                 )
@@ -98,11 +105,12 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Returns true (and finishes the activity) if [intent] should dispatch straight to a
-     * target with no UI at all: an explicit shortcut tap, or a plain DIRECT-mode tap.
-     * Always instant either way — [AppConfig.useAllSlotsInDirectMode] only decides whether
-     * a translucent Configure gear also flashes on top via [GearOverlayService], it never
-     * delays the dispatch itself.
+     * Returns true (and finishes the activity) if [intent] should be handled without ever
+     * showing MainActivity's own UI: an explicit shortcut tap or a plain DIRECT-mode tap
+     * dispatch straight to a target (always instant — [AppConfig.useAllSlotsInDirectMode]
+     * only decides whether a translucent Configure gear also flashes on top via
+     * [GearOverlayService]); a plain LIST-mode tap or an incoming share instead opens the
+     * translucent [QuickPickActivity] so it overlays whatever was on screen.
      */
     private fun dispatchIfShortcut(intent: Intent, config: AppConfig): Boolean {
         if (intent.getBooleanExtra(EXTRA_OPEN_CONFIG, false)) return false // Configure entry: show UI instead
@@ -114,17 +122,28 @@ class MainActivity : ComponentActivity() {
             return true
         }
 
+        val isPlainTap = isPlainLauncherTap(intent)
         val isPlainDirectTap = config.mode == AppMode.DIRECT &&
-            isPlainLauncherTap(intent) &&
+            isPlainTap &&
             config.slots.getOrNull(0)?.isConfigured == true
-        if (!isPlainDirectTap) return false
-
-        config.slots.getOrNull(0)?.let { ActionDispatcher.execute(this, it) }
-        if (config.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)) {
-            startService(Intent(this, GearOverlayService::class.java))
+        if (isPlainDirectTap) {
+            config.slots.getOrNull(0)?.let { ActionDispatcher.execute(this, it) }
+            if (config.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)) {
+                startService(Intent(this, GearOverlayService::class.java))
+            }
+            finish()
+            return true
         }
-        finish()
-        return true
+
+        val sharedText = if (intent.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+            intent.getStringExtra(Intent.EXTRA_TEXT)
+        } else null
+        if (config.slots.any { it.isConfigured } && (isPlainTap || sharedText != null)) {
+            startActivity(Intent(this, QuickPickActivity::class.java).putExtra(EXTRA_SHARED_TEXT, sharedText))
+            finish()
+            return true
+        }
+        return false
     }
 
     /**
@@ -136,13 +155,6 @@ class MainActivity : ComponentActivity() {
     private fun isPlainLauncherTap(intent: Intent): Boolean =
         intent.action != Intent.ACTION_SEND
 
-    private fun startScreen(intent: Intent, config: AppConfig): Screen {
-        if (intent.getBooleanExtra(EXTRA_OPEN_CONFIG, false)) return Screen.Config
-        val sharedText = if (intent.action == Intent.ACTION_SEND && intent.type == "text/plain") {
-            intent.getStringExtra(Intent.EXTRA_TEXT)
-        } else null
-        return if (config.slots.none { it.isConfigured }) Screen.Config else Screen.QuickPick(sharedText)
-    }
 }
 
 @androidx.compose.runtime.Composable
@@ -150,11 +162,13 @@ private fun NoAppRoot(
     mode: AppMode,
     slots: androidx.compose.runtime.snapshots.SnapshotStateList<ShortcutSlot>,
     useAllSlotsInDirectMode: Boolean,
+    iconVariant: String,
     screen: Screen,
     onScreenChange: (Screen) -> Unit,
     onSlotsChanged: (List<ShortcutSlot>) -> Unit,
     onModeChanged: (AppMode) -> Unit,
     onUseAllSlotsInDirectModeChanged: (Boolean) -> Unit,
+    onIconVariantChanged: (String) -> Unit,
     onConfigImported: (AppConfig) -> Unit
 ) {
     if (screen !is Screen.Config) {
@@ -204,17 +218,11 @@ private fun NoAppRoot(
         }
 
         is Screen.Settings -> SettingsScreen(
-            config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode),
+            config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant),
             onImportConfig = onConfigImported,
             onUseAllSlotsInDirectModeChanged = onUseAllSlotsInDirectModeChanged,
+            onIconVariantChanged = onIconVariantChanged,
             onBack = { onScreenChange(Screen.Config) }
-        )
-
-        is Screen.QuickPick -> QuickPickSheet(
-            slots = slots.filter { it.isConfigured },
-            sharedText = screen.sharedText,
-            onConfigure = { onScreenChange(Screen.Config) },
-            onDismiss = { onScreenChange(Screen.Config) }
         )
     }
 }

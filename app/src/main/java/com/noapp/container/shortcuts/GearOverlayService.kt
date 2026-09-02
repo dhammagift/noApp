@@ -51,6 +51,12 @@ class GearOverlayService : Service() {
             ?.let { resources.getDimensionPixelSize(it) }
             ?: (24 * density).toInt()
         val sizePx = (ICON_DP * density).toInt()
+        // On a small/cover display (e.g. a flip phone's outer screen) the looked-up status
+        // bar height can be disproportionately large relative to the actual screen — clamp
+        // so the icon still lands on-screen instead of past the visible area.
+        val screenHeightPx = resources.displayMetrics.heightPixels
+        val screenWidthPx = resources.displayMetrics.widthPixels
+        val maxYPx = (minOf(screenHeightPx, screenWidthPx) * 0.2f).toInt()
 
         val wm = getSystemService(WINDOW_SERVICE) as WindowManager
         windowManager = wm
@@ -75,10 +81,12 @@ class GearOverlayService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.END
-            x = (END_MARGIN_DP * density).toInt()
+            x = (END_MARGIN_DP * density).toInt().coerceAtMost((screenWidthPx - sizePx).coerceAtLeast(0))
             // Clear the status bar / notification shade, not just a fixed margin from the
-            // raw screen edge — otherwise it renders half-hidden underneath it.
-            y = statusBarPx + (TOP_MARGIN_DP * density).toInt()
+            // raw screen edge — otherwise it renders half-hidden underneath it. Clamped so a
+            // tiny cover display's disproportionate status-bar-height lookup can't push it
+            // past the visible area.
+            y = (statusBarPx + (TOP_MARGIN_DP * density).toInt()).coerceAtMost(maxYPx)
         }
 
         runCatching { wm.addView(view, params) }.onFailure { stopSelf(); return START_NOT_STICKY }

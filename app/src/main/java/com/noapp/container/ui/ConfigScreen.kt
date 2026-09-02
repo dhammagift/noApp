@@ -129,7 +129,7 @@ fun ConfigScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("No App") },
+                title = { Text("Not App") },
                 actions = {
                     AssistChip(
                         onClick = {

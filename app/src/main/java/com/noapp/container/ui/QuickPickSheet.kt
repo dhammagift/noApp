@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.noapp.container.icon.SlotIcon
@@ -43,7 +44,11 @@ fun QuickPickSheet(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val sheetState = rememberModalBottomSheetState()
+    // skipPartiallyExpanded: on a short display (e.g. a folded cover screen) the default
+    // "partially expanded" peek state can leave only 1-2 rows visible with no obvious hint
+    // to drag further — always render fully expanded instead.
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val maxListHeight = (LocalConfiguration.current.screenHeightDp * 0.6f).dp
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(Modifier.padding(bottom = 24.dp)) {
@@ -59,7 +64,7 @@ fun QuickPickSheet(
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                 )
             }
-            LazyColumn(Modifier.heightIn(max = 420.dp)) {
+            LazyColumn(Modifier.heightIn(max = maxListHeight)) {
                 items(slots, key = { it.id }) { slot ->
                     ListItem(
                         headlineContent = { Text(slot.label.ifBlank { "Item ${slot.id + 1}" }) },
