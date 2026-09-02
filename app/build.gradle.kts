@@ -12,8 +12,8 @@ android {
         applicationId = "gift.dhamma.noapp"
         minSdk = 24
         targetSdk = 36
-        versionCode = 13
-        versionName = "0.4.5"
+        versionCode = 14
+        versionName = "0.4.6"
     }
 
     buildTypes {

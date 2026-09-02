@@ -1,0 +1,7 @@
+<resources>
+    <!-- Matches the navy backdrop already baked into ic_launcher_foreground_sankha_bckgr's own
+         art — used as that one icon's adaptive-icon background layer so its safe-zone margin
+         (much larger than the other variants', since its shell shape needed more room under a
+         circular mask) reads as "the square keeps going" instead of a stray white/black patch. -->
+    <color name="sankha_bckgr_background">#2B2E71</color>
+</resources>
