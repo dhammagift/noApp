@@ -26,11 +26,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -91,6 +94,18 @@ private fun SlotType.icon(): ImageVector = when (this) {
     SlotType.CUSTOM -> ExtensionIcon
 }
 
+private fun AppMode.labelRes(): Int = when (this) {
+    AppMode.LIST -> R.string.config_mode_list
+    AppMode.DIRECT -> R.string.config_mode_direct
+    AppMode.MIX -> R.string.config_mode_mix
+}
+
+private fun AppMode.descriptionRes(): Int = when (this) {
+    AppMode.LIST -> R.string.config_mode_list_desc
+    AppMode.DIRECT -> R.string.config_mode_direct_desc
+    AppMode.MIX -> R.string.config_mode_mix_desc
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConfigScreen(
@@ -130,37 +145,41 @@ fun ConfigScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
-                    val defaultItemName = stringResource(R.string.config_default_item)
-                    AssistChip(
-                        onClick = {
-                            val newMode = when (mode) {
-                                AppMode.LIST -> AppMode.DIRECT
-                                AppMode.DIRECT -> AppMode.MIX
-                                AppMode.MIX -> AppMode.LIST
-                            }
-                            onModeChanged(newMode)
-                            scope.launch {
-                                val label = slots.getOrNull(0)?.label?.ifBlank { null } ?: defaultItemName
-                                val message = when (newMode) {
-                                    AppMode.DIRECT -> context.getString(R.string.config_snackbar_direct, label)
-                                    AppMode.MIX -> context.getString(R.string.config_snackbar_mix, label)
-                                    AppMode.LIST -> context.getString(R.string.config_snackbar_list)
-                                }
-                                snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
-                            }
-                        },
-                        label = {
-                            Text(
-                                stringResource(
-                                    when (mode) {
-                                        AppMode.LIST -> R.string.config_mode_list
-                                        AppMode.DIRECT -> R.string.config_mode_direct
-                                        AppMode.MIX -> R.string.config_mode_mix
+                    var modeMenuExpanded by remember { mutableStateOf(false) }
+                    Box {
+                        AssistChip(
+                            onClick = { modeMenuExpanded = true },
+                            label = { Text(stringResource(mode.labelRes())) }
+                        )
+                        DropdownMenu(
+                            expanded = modeMenuExpanded,
+                            onDismissRequest = { modeMenuExpanded = false }
+                        ) {
+                            AppMode.entries.forEach { candidate ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column(Modifier.width(260.dp)) {
+                                            Text(stringResource(candidate.labelRes()), style = MaterialTheme.typography.bodyLarge)
+                                            Text(
+                                                stringResource(candidate.descriptionRes()),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
+                                    trailingIcon = {
+                                        if (candidate == mode) {
+                                            Icon(Icons.Default.Check, contentDescription = null)
+                                        }
+                                    },
+                                    onClick = {
+                                        onModeChanged(candidate)
+                                        modeMenuExpanded = false
                                     }
                                 )
-                            )
+                            }
                         }
-                    )
+                    }
                     TextButton(onClick = { showFillDialog = true }) { Text(stringResource(R.string.config_fill)) }
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.config_settings_desc))
