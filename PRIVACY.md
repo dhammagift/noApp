@@ -2,6 +2,16 @@
 
 Not App does not collect, transmit, or share any personal data.
 
+## Our philosophy
+
+Not App has no analytics, no crash reporting, no ad SDKs, and no telemetry
+of any kind built in — nothing in the app phones home, ever. We don't know
+how you use the app, which shortcuts you've configured, or that you're
+using it at all. There's no account, no sign-in, and nothing tying the app
+to your identity. That's a deliberate choice, not just an oversight: the
+whole point of Not App is to be a small, private tool that answers only to
+you.
+
 - The shortcut slots you configure (labels, URLs, intents, colors) are stored
   only in this app's local storage on your device, via Android SharedPreferences.
 - Nothing is sent to any server operated by the developer or a third party.
@@ -23,5 +33,12 @@ Not App does not collect, transmit, or share any personal data.
     the UX by populating that row. Not App works without it — you just don't
     get the recent-apps row — and the data it reads never leaves your device
     or gets transmitted anywhere.
+
+## What this policy doesn't cover
+
+This policy describes Not App's own code — it has no control over, and this
+policy makes no claims about, data collected by Google Play (if that's how
+you installed it) or by Android itself (e.g. system diagnostics, install
+attribution). Those are governed by Google's own privacy policy, not ours.
 
 _Last updated: 2026-09-03._
