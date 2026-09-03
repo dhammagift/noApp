@@ -1,0 +1,4 @@
+* Dragging the floating peek button onto the trash now also turns off the
+  "show floating button" setting, so it stops reappearing after removal
+* More reliable OS App Shortcuts (long-press menu) across all three modes
+* Fixed a visible gap at the bottom of the shortcut list sheet

@@ -23,6 +23,7 @@
     <string name="settings_share_text">Check out Not App: %1$s</string>
     <string name="settings_rate_app">Rate app</string>
     <string name="settings_source_code">Source code</string>
+    <string name="settings_latest_release">Latest release</string>
     <string name="settings_privacy_policy">Privacy policy</string>
     <string name="settings_backup">Backup</string>
     <string name="settings_restore">Restore</string>

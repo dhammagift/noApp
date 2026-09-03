@@ -66,6 +66,7 @@ import com.noapp.container.shortcuts.QuickPickPeekOverlayService
 import com.noapp.container.shortcuts.ShortcutSync
 
 private const val GITHUB_URL = "https://github.com/dhammagift/noApp"
+private const val GITHUB_RELEASES_URL = "$GITHUB_URL/releases/latest"
 
 // TODO: replace with a real hosted privacy policy page before publishing to the Play Store
 private const val PRIVACY_POLICY_URL = "https://github.com/dhammagift/noApp/blob/main/PRIVACY.md"
@@ -332,6 +333,13 @@ fun SettingsScreen(
                 headlineContent = { Text(stringResource(R.string.settings_source_code)) },
                 modifier = Modifier.clickable {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_URL)))
+                }
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_latest_release)) },
+                leadingContent = { Icon(painterResource(R.drawable.ic_github), contentDescription = null) },
+                modifier = Modifier.clickable {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_RELEASES_URL)))
                 }
             )
             ListItem(

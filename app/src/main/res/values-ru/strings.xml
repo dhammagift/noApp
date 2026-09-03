@@ -20,6 +20,7 @@
     <string name="settings_share_text">Посмотри Not App: %1$s</string>
     <string name="settings_rate_app">Оценить приложение</string>
     <string name="settings_source_code">Исходный код</string>
+    <string name="settings_latest_release">Последний релиз</string>
     <string name="settings_privacy_policy">Политика конфиденциальности</string>
     <string name="settings_backup">Резервная копия</string>
     <string name="settings_restore">Восстановить</string>

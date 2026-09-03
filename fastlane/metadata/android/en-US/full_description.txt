@@ -1,0 +1,40 @@
+Not App turns your home screen icon into a customizable command center instead
+of cluttering it with dozens of separate app shortcuts. Configure it once,
+tap it endlessly.
+
+Choose your interaction style:
+
+LIST mode (default): tapping the icon opens your full shortcut list in a
+bottom sheet. Long-press for direct OS shortcuts to individual items.
+
+DIRECT mode: tapping the icon launches your primary shortcut instantly, no
+UI, no delay. Long-press for shortcuts to your backups and alternatives,
+managed by the OS.
+
+MIX mode: tapping the icon launches your primary shortcut instantly, same as
+DIRECT — but your full shortcut list also opens on top of it, so the rest of
+your items stay one tap away. Long-press still works too. Swipe the list
+away and it collapses into a small floating button instead of closing, so
+you can bring it back with one tap — drag it onto the on-screen trash target
+to remove it for good.
+
+Features:
+* Unlimited shortcuts: app launches, URLs, and custom intents
+* Three interaction modes: LIST for exploration, DIRECT for speed, MIX for
+  both at once
+* Drag-to-reorder your shortcuts
+* Customizable icons: emoji badges, colored labels, or the original app
+  icons
+* An optional floating peek button that keeps your list one tap away in
+  LIST/MIX mode
+* An optional row of recently-used apps at the top of the list
+* 8 launcher icon styles to choose from in Settings
+* Pin any single shortcut as its own standalone home-screen icon
+* Smart sharing: share text directly to your shortcuts, with {{word}}
+  placeholders in URLs to insert the shared content
+* Import/export your entire configuration as JSON
+* Syncs with Android App Shortcuts for long-press menu support
+
+Not App has no analytics, no crash reporting, no ad SDKs, and no telemetry
+of any kind. It collects, transmits, and shares nothing — everything you
+configure stays on your device.
