@@ -1,5 +1,6 @@
 package com.noapp.container.shortcuts
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.pm.ShortcutInfoCompat
@@ -7,6 +8,7 @@ import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.noapp.container.MainActivity
 import com.noapp.container.R
+import com.noapp.container.icon.enabledLauncherComponent
 import com.noapp.container.icon.iconBitmapFor
 import com.noapp.container.icon.monogramBitmap
 import com.noapp.container.model.AppMode
@@ -34,29 +36,34 @@ private const val CONFIGURE_SHORTCUT_ID = "configure"
  * in the user's configured order.
  */
 object ShortcutSync {
-    fun sync(context: Context, mode: AppMode, slots: List<ShortcutSlot>, useAllSlotsInDirectMode: Boolean = false) {
+    fun sync(context: Context, mode: AppMode, slots: List<ShortcutSlot>, iconVariant: String, useAllSlotsInDirectMode: Boolean = false) {
         val budget = ShortcutManagerCompat.getMaxShortcutCountPerActivity(context)
             .let { if (it <= 0) 4 else it } // defensive; real launchers always report > 0
+        // Without an explicit activity, several launchers silently show no shortcuts at all
+        // for an app whose actual launcher icon is one of many activity-aliases rather than a
+        // plain activity — see enabledLauncherComponent's doc comment.
+        val component = enabledLauncherComponent(context, iconVariant, mode)
 
         val shortcuts = when (mode) {
             AppMode.DIRECT -> {
                 val mainConfigured = slots.getOrNull(0)?.isConfigured == true
                 val auxSlots = slots.filter { it.id != 0 && it.isConfigured }
                 buildList {
-                    if (mainConfigured && !useAllSlotsInDirectMode && budget >= 1) add(configureShortcut(context))
-                    addAll(auxSlots.take((budget - size).coerceAtLeast(0)).map { shortcutFor(context, it) })
+                    if (mainConfigured && !useAllSlotsInDirectMode && budget >= 1) add(configureShortcut(context, component))
+                    addAll(auxSlots.take((budget - size).coerceAtLeast(0)).map { shortcutFor(context, it, component) })
                 }
             }
             AppMode.LIST, AppMode.MIX -> {
-                slots.filter { it.isConfigured }.take(budget).map { shortcutFor(context, it) }
+                slots.filter { it.isConfigured }.take(budget).map { shortcutFor(context, it, component) }
             }
         }
         // Full replace each time: always under budget by construction, no drift bookkeeping needed.
         ShortcutManagerCompat.setDynamicShortcuts(context, shortcuts)
     }
 
-    private fun configureShortcut(context: Context): ShortcutInfoCompat =
+    private fun configureShortcut(context: Context, component: ComponentName): ShortcutInfoCompat =
         ShortcutInfoCompat.Builder(context, CONFIGURE_SHORTCUT_ID)
+            .setActivity(component)
             .setShortLabel(context.getString(R.string.shortcut_configure_label))
             .setIcon(IconCompat.createWithBitmap(monogramBitmap("⚙", "#3C4043", SHORTCUT_ICON_SIZE_PX)))
             .setIntent(
@@ -67,12 +74,13 @@ object ShortcutSync {
             .build()
 
     /** Exposed (not just used internally by [sync]) so Settings can pin a single slot as its own home-screen icon. */
-    internal fun shortcutFor(context: Context, slot: ShortcutSlot): ShortcutInfoCompat {
+    internal fun shortcutFor(context: Context, slot: ShortcutSlot, component: ComponentName): ShortcutInfoCompat {
         val intent = Intent(context, MainActivity::class.java)
             .setAction(Intent.ACTION_VIEW)
             .putExtra(EXTRA_SLOT_ID, slot.id)
 
         return ShortcutInfoCompat.Builder(context, "slot_${slot.id}")
+            .setActivity(component)
             .setShortLabel(slot.label.ifBlank { context.getString(R.string.common_item_n, slot.id + 1) })
             .setIcon(IconCompat.createWithBitmap(iconBitmapFor(context, slot, SHORTCUT_ICON_SIZE_PX)))
             .setIntent(intent)

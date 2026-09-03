@@ -58,6 +58,7 @@ import com.noapp.container.R
 import com.noapp.container.data.ConfigStore
 import com.noapp.container.icon.ICON_VARIANTS
 import com.noapp.container.icon.IconVariant
+import com.noapp.container.icon.enabledLauncherComponent
 import com.noapp.container.model.AppConfig
 import com.noapp.container.model.AppMode
 import com.noapp.container.recents.RecentApps
@@ -291,7 +292,8 @@ fun SettingsScreen(
                 modifier = Modifier.clickable(enabled = firstSlot != null) {
                     val slot = firstSlot ?: return@clickable
                     if (ShortcutManagerCompat.isRequestPinShortcutSupported(context)) {
-                        ShortcutManagerCompat.requestPinShortcut(context, ShortcutSync.shortcutFor(context, slot), null)
+                        val component = enabledLauncherComponent(context, config.iconVariant, config.mode)
+                        ShortcutManagerCompat.requestPinShortcut(context, ShortcutSync.shortcutFor(context, slot, component), null)
                     } else {
                         Toast.makeText(context, context.getString(R.string.toast_pin_unsupported), Toast.LENGTH_SHORT).show()
                     }

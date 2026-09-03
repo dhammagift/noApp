@@ -47,6 +47,11 @@ class MainActivity : ComponentActivity() {
         // saved, or any other drift; a no-op the rest of the time. Doesn't affect this launch,
         // only the next one.
         com.noapp.container.icon.applyLauncherComponent(this, initialConfig.iconVariant, initialConfig.mode)
+        // Self-heals installs whose shortcuts were published before ShortcutSync started
+        // pinning them to the enabled alias explicitly (see its own doc comment) — those
+        // never show up in the long-press menu at all until re-synced, and nothing else
+        // in this app calls sync() except an actual edit.
+        ShortcutSync.sync(this, initialConfig.mode, initialConfig.slots, initialConfig.iconVariant, initialConfig.useAllSlotsInDirectMode)
         if (dispatchIfShortcut(intent, initialConfig)) return
 
         setContent {
@@ -62,7 +67,7 @@ class MainActivity : ComponentActivity() {
                 fun persist() {
                     val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps)
                     ConfigStore.save(this, config)
-                    ShortcutSync.sync(this, mode, slots.toList(), useAllSlotsInDirectMode)
+                    ShortcutSync.sync(this, mode, slots.toList(), iconVariant, useAllSlotsInDirectMode)
                     com.noapp.container.icon.applyLauncherComponent(this, iconVariant, mode)
                 }
 

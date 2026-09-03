@@ -68,3 +68,18 @@ fun applyLauncherComponent(context: Context, variantId: String, mode: AppMode) {
 
 private fun stateFor(enabled: Boolean) =
     if (enabled) PackageManager.COMPONENT_ENABLED_STATE_ENABLED else PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+
+/**
+ * The one alias [applyLauncherComponent] leaves enabled for [variantId]/[mode] — needed so
+ * ShortcutManagerCompat shortcuts (see ShortcutSync) can be tied to it explicitly via
+ * ShortcutInfoCompat.Builder.setActivity(...). Without that, several launchers silently show
+ * no shortcuts at all for an app whose actual launcher icon is an activity-alias rather than
+ * a plain activity — there's no single unambiguous "default activity" for them to fall back to
+ * across 16 aliases, only one of which is ever enabled.
+ */
+fun enabledLauncherComponent(context: Context, variantId: String, mode: AppMode): ComponentName {
+    val resolvedVariantId = if (ICON_VARIANTS.any { it.id == variantId }) variantId else ICON_VARIANTS.first().id
+    val variant = ICON_VARIANTS.first { it.id == resolvedVariantId }
+    val suffix = if (mode == AppMode.LIST) variant.listComponentSuffix else variant.mainComponentSuffix
+    return ComponentName(context.packageName, "$NAMESPACE$suffix")
+}
