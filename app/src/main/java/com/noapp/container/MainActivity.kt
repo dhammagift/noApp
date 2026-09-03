@@ -70,8 +70,12 @@ class MainActivity : ComponentActivity() {
                 fun persist() {
                     val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps)
                     ConfigStore.save(this, config)
-                    ShortcutSync.sync(this, mode, slots.toList(), iconVariant, useAllSlotsInDirectMode)
+                    // Must enable the target launcher-alias component before syncing shortcuts to
+                    // it (see onCreate's self-heal call and enabledLauncherComponent's doc comment)
+                    // — syncing first ties shortcuts to a component that may still be disabled,
+                    // an ordering some launchers don't recover from without a reboot or a later re-sync.
                     com.noapp.container.icon.applyLauncherComponent(this, iconVariant, mode)
+                    ShortcutSync.sync(this, mode, slots.toList(), iconVariant, useAllSlotsInDirectMode)
                 }
 
                 NoAppRoot(

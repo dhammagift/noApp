@@ -189,9 +189,14 @@ fun QuickPickSheet(
                         }
                     }
                 )
-                .navigationBarsPadding()
         ) {
-            Column(Modifier.padding(bottom = 24.dp)) {
+            // navigationBarsPadding goes on the inner content, not the Surface itself: applied
+            // to the Surface it shrinks the Surface's own bounds up from the true screen edge,
+            // leaving a gap below it (through the transparent tap-outside catcher) that the
+            // background behind the sheet shows through. Padding the content instead keeps the
+            // Surface's background flush with the bottom of the screen while still keeping the
+            // actual controls clear of the nav bar / gesture area.
+            Column(Modifier.navigationBarsPadding().padding(bottom = 24.dp)) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                     BottomSheetDefaults.DragHandle()
                 }

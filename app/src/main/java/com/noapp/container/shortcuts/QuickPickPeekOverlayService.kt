@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.noapp.container.QuickPickActivity
 import com.noapp.container.R
+import com.noapp.container.data.ConfigStore
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.roundToInt
@@ -255,6 +256,10 @@ class QuickPickPeekOverlayService : Service() {
                     if (dragging) {
                         removeTrashView()
                         if (overTrash) {
+                            // Dragging to the trash is an explicit "stop showing this" — persist
+                            // it, or the bubble just comes back on the next minimize/launch and
+                            // the removal reads as broken rather than intentional.
+                            runCatching { ConfigStore.save(this, ConfigStore.load(this).copy(showPeekBubble = false)) }
                             stopSelf()
                         } else {
                             velocityTracker?.computeCurrentVelocity(1000, maxFlingVelocityPx)
