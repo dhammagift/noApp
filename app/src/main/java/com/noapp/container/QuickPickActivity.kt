@@ -47,10 +47,12 @@ class QuickPickActivity : ComponentActivity() {
                 QuickPickSheet(
                     slots = slots,
                     sharedText = sharedText,
-                    // Only the true MIX dispatch (plain-tap slot-0 launch + list) gets the
-                    // collapse-to-peek affordance — a share-target sheet has no slot-0 side
-                    // effect to avoid re-triggering, so it keeps the plain dismiss-and-finish.
-                    allowPeek = config.mode == AppMode.MIX && sharedText == null,
+                    // LIST and MIX both get the collapse-to-peek affordance, unless the user
+                    // turned it off in Settings; the share-target sheet keeps the plain
+                    // dismiss-and-finish regardless (there's no "list" to return to).
+                    allowPeek = (config.mode == AppMode.LIST || config.mode == AppMode.MIX) &&
+                        sharedText == null &&
+                        config.showPeekBubble,
                     onConfigure = {
                         startActivity(
                             Intent(this, MainActivity::class.java)

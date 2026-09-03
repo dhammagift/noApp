@@ -53,10 +53,10 @@ import com.noapp.container.shortcuts.QuickPickPeekOverlayService
  * row up top (least reachable spot) so the item list, which ends at the very
  * bottom of the sheet, keeps the most reachable position for real items.
  *
- * [allowPeek] (MIX mode only): swiping the sheet away collapses it into a small
- * round button instead of finishing the host Activity — tapping that button
- * re-shows the list without re-dispatching slot 0. LIST mode and the share sheet
- * don't need this since a plain re-tap already reopens them with no side effect.
+ * [allowPeek] (LIST and MIX, not the share sheet): swiping the sheet away
+ * collapses it into a small draggable button instead of finishing the host
+ * Activity — tapping that button re-shows the list (with no side effect, unlike
+ * a plain re-tap in MIX mode, which would also re-dispatch slot 0).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -132,9 +132,11 @@ fun QuickPickSheet(
 }
 
 /**
- * The collapsed state for MIX's [allowPeek]: a small round button instead of a
- * full-width bar, so it doesn't cover whatever slot 0 launched underneath it.
- * Positioned bottom-end, same thumb-reach corner the sheet's own controls favor.
+ * The in-Activity fallback for [allowPeek] when the overlay permission isn't
+ * granted: a small round button instead of a full-width bar, so it doesn't
+ * cover whatever's underneath it. Positioned bottom-end, same thumb-reach
+ * corner the sheet's own controls favor. Unlike QuickPickPeekOverlayService's
+ * real system overlay, this only lives as long as the Activity itself does.
  */
 @Composable
 private fun PeekPill(onClick: () -> Unit) {

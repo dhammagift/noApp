@@ -23,5 +23,9 @@ data class AppConfig(
     // entry for a brief tappable gear shown on every plain-tap dispatch instead.
     val useAllSlotsInDirectMode: Boolean = false,
     // Matches an IconVariant.id in icon/AppIconSwitcher.kt — "default" is the plain app icon.
-    val iconVariant: String = "default"
+    val iconVariant: String = "default",
+    // LIST/MIX only: swiping the list away collapses it into a draggable floating button
+    // (see QuickPickPeekOverlayService) instead of just closing it. Off restores the plain
+    // swipe-to-close behavior in both modes.
+    val showPeekBubble: Boolean = true
 )

@@ -6,6 +6,8 @@
     <string name="settings_use_all_slots">Использовать все слоты шорткатов в режиме Direct</string>
     <string name="settings_use_all_slots_on">Слот под \"Настройки\" не резервируется — в меню долгого нажатия только ваши ярлыки. Вместо этого при запуске на секунду появляется полупрозрачная шестерёнка.</string>
     <string name="settings_use_all_slots_off">Один слот шортката зарезервирован под постоянный ярлык \"Настройки\"</string>
+    <string name="settings_show_peek_bubble">Показывать плавающую кнопку при закрытии списка</string>
+    <string name="settings_show_peek_bubble_hint">Выключено: свайп списка просто закрывает его, как раньше</string>
     <string name="settings_pin_title">Закрепить \"%1$s\" на рабочем столе</string>
     <string name="settings_pin_default_item">первый ярлык</string>
     <string name="settings_pin_hint_enabled">Добавляет отдельную иконку рядом с Not App, которая сразу запускает этот ярлык</string>
@@ -56,9 +58,9 @@
     <string name="config_mode_direct">▶ Прямой</string>
     <string name="config_mode_mix">◫ Микс</string>
     <string name="config_mode_dialog_title">Выбор режима</string>
-    <string name="config_mode_list_desc">Тап по иконке показывает все ярлыки во всплывающем списке. Долгое нажатие на иконку открывает меню с быстрым доступом к каждому ярлыку.</string>
+    <string name="config_mode_list_desc">Тап по иконке показывает все ярлыки во всплывающем списке. Долгое нажатие на иконку открывает меню с быстрым доступом к каждому ярлыку. Смахните список вниз, чтобы свернуть его в маленькую перетаскиваемую кнопку вместо закрытия — нажмите на неё, чтобы развернуть список снова.</string>
     <string name="config_mode_direct_desc">Тап по иконке сразу запускает первый ярлык. Долгое нажатие на иконку открывает меню с быстрым доступом к остальным ярлыкам (и ярлыком \"Настройки\", если в Настройках не включено \"использовать все слоты шорткатов\").</string>
-    <string name="config_mode_mix_desc">Тап по иконке сразу запускает первый ярлык и одновременно показывает список поверх него. Долгое нажатие на иконку открывает меню с быстрым доступом к каждому ярлыку. Смахните список вниз, чтобы свернуть его в маленькую кнопку вместо закрытия — нажмите на неё, чтобы развернуть список снова.</string>
+    <string name="config_mode_mix_desc">Тап по иконке сразу запускает первый ярлык и одновременно показывает список поверх него. Долгое нажатие на иконку открывает меню с быстрым доступом к каждому ярлыку. Смахните список вниз, чтобы свернуть его в маленькую перетаскиваемую кнопку вместо закрытия — нажмите на неё, чтобы развернуть список снова.</string>
     <string name="config_fill">Заполнить</string>
     <string name="config_settings_desc">Настройки</string>
     <string name="config_add_item_desc">Добавить ярлык</string>
@@ -106,4 +108,5 @@
     <string name="quick_pick_configure_desc">Настройки</string>
     <string name="quick_pick_send_to">Отправить \"%1$s\" в:</string>
     <string name="quick_pick_reopen_desc">Показать список</string>
+    <string name="quick_pick_remove_desc">Удалить</string>
 </resources>

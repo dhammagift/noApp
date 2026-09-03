@@ -55,10 +55,11 @@ class MainActivity : ComponentActivity() {
                 val slots = remember { mutableStateListOf(*initialConfig.slots.toTypedArray()) }
                 var useAllSlotsInDirectMode by remember { mutableStateOf(initialConfig.useAllSlotsInDirectMode) }
                 var iconVariant by remember { mutableStateOf(initialConfig.iconVariant) }
+                var showPeekBubble by remember { mutableStateOf(initialConfig.showPeekBubble) }
                 var screen by remember { mutableStateOf<Screen>(Screen.Config) }
 
                 fun persist() {
-                    val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant)
+                    val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble)
                     ConfigStore.save(this, config)
                     ShortcutSync.sync(this, mode, slots.toList(), useAllSlotsInDirectMode)
                     com.noapp.container.icon.applyLauncherComponent(this, iconVariant, mode)
@@ -69,6 +70,7 @@ class MainActivity : ComponentActivity() {
                     slots = slots,
                     useAllSlotsInDirectMode = useAllSlotsInDirectMode,
                     iconVariant = iconVariant,
+                    showPeekBubble = showPeekBubble,
                     screen = screen,
                     onScreenChange = { screen = it },
                     onSlotsChanged = { updated ->
@@ -88,12 +90,17 @@ class MainActivity : ComponentActivity() {
                         iconVariant = value
                         persist()
                     },
+                    onShowPeekBubbleChanged = { value ->
+                        showPeekBubble = value
+                        persist()
+                    },
                     onConfigImported = { imported ->
                         mode = imported.mode
                         slots.clear()
                         slots.addAll(imported.slots)
                         useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode
                         iconVariant = imported.iconVariant
+                        showPeekBubble = imported.showPeekBubble
                         persist()
                     }
                 )
@@ -174,12 +181,14 @@ private fun NoAppRoot(
     slots: androidx.compose.runtime.snapshots.SnapshotStateList<ShortcutSlot>,
     useAllSlotsInDirectMode: Boolean,
     iconVariant: String,
+    showPeekBubble: Boolean,
     screen: Screen,
     onScreenChange: (Screen) -> Unit,
     onSlotsChanged: (List<ShortcutSlot>) -> Unit,
     onModeChanged: (AppMode) -> Unit,
     onUseAllSlotsInDirectModeChanged: (Boolean) -> Unit,
     onIconVariantChanged: (String) -> Unit,
+    onShowPeekBubbleChanged: (Boolean) -> Unit,
     onConfigImported: (AppConfig) -> Unit
 ) {
     if (screen !is Screen.Config) {
@@ -229,10 +238,11 @@ private fun NoAppRoot(
         }
 
         is Screen.Settings -> SettingsScreen(
-            config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant),
+            config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble),
             onImportConfig = onConfigImported,
             onUseAllSlotsInDirectModeChanged = onUseAllSlotsInDirectModeChanged,
             onIconVariantChanged = onIconVariantChanged,
+            onShowPeekBubbleChanged = onShowPeekBubbleChanged,
             onBack = { onScreenChange(Screen.Config) }
         )
     }

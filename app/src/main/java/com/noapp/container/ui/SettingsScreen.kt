@@ -86,6 +86,7 @@ fun SettingsScreen(
     onImportConfig: (AppConfig) -> Unit,
     onUseAllSlotsInDirectModeChanged: (Boolean) -> Unit,
     onIconVariantChanged: (String) -> Unit,
+    onShowPeekBubbleChanged: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -212,6 +213,19 @@ fun SettingsScreen(
                                     else -> showOverlayExplainer = true
                                 }
                             }
+                        )
+                    }
+                )
+                HorizontalDivider()
+            }
+            if (config.mode == AppMode.LIST || config.mode == AppMode.MIX) {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.settings_show_peek_bubble)) },
+                    supportingContent = { Text(stringResource(R.string.settings_show_peek_bubble_hint)) },
+                    trailingContent = {
+                        Switch(
+                            checked = config.showPeekBubble,
+                            onCheckedChange = onShowPeekBubbleChanged
                         )
                     }
                 )

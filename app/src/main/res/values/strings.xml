@@ -9,6 +9,8 @@
     <string name="settings_use_all_slots">Use all shortcut slots in Direct mode</string>
     <string name="settings_use_all_slots_on">No slot reserved for Configure — long-press shows only your items. A translucent gear flashes on launch instead.</string>
     <string name="settings_use_all_slots_off">One shortcut slot is reserved for a permanent Configure entry</string>
+    <string name="settings_show_peek_bubble">Show floating button when swiping the list away</string>
+    <string name="settings_show_peek_bubble_hint">Off: swiping the list away just closes it, like before</string>
     <string name="settings_pin_title">Pin \"%1$s\" to home screen</string>
     <string name="settings_pin_default_item">your first item</string>
     <string name="settings_pin_hint_enabled">Adds a separate icon that launches it directly, next to Not App</string>
@@ -59,9 +61,9 @@
     <string name="config_mode_direct">▶ Direct</string>
     <string name="config_mode_mix">◫ Mix</string>
     <string name="config_mode_dialog_title">Choose mode</string>
-    <string name="config_mode_list_desc">Tap the icon to see all items in a pop-up list. Long-press the icon for a shortcut menu with every item.</string>
+    <string name="config_mode_list_desc">Tap the icon to see all items in a pop-up list. Long-press the icon for a shortcut menu with every item. Swipe the list down to collapse it into a small draggable button instead of closing it — tap that button to bring the list back.</string>
     <string name="config_mode_direct_desc">Tap the icon to launch the first item instantly. Long-press the icon for a shortcut menu with the rest of the items (plus Configure, unless \"use all shortcut slots\" is on in Settings).</string>
-    <string name="config_mode_mix_desc">Tap the icon to launch the first item instantly and also show the list on top. Long-press the icon for a shortcut menu with every item. Swipe the list down to collapse it into a small button instead of closing it — tap that button to bring the list back.</string>
+    <string name="config_mode_mix_desc">Tap the icon to launch the first item instantly and also show the list on top. Long-press the icon for a shortcut menu with every item. Swipe the list down to collapse it into a small draggable button instead of closing it — tap that button to bring the list back.</string>
     <string name="config_fill">Fill</string>
     <string name="config_settings_desc">Settings</string>
     <string name="config_add_item_desc">Add item</string>
@@ -107,4 +109,5 @@
     <string name="quick_pick_configure_desc">Configure</string>
     <string name="quick_pick_send_to">Send \"%1$s\" to:</string>
     <string name="quick_pick_reopen_desc">Show list</string>
+    <string name="quick_pick_remove_desc">Remove</string>
 </resources>
