@@ -41,4 +41,13 @@ policy makes no claims about, data collected by Google Play (if that's how
 you installed it) or by Android itself (e.g. system diagnostics, install
 attribution). Those are governed by Google's own privacy policy, not ours.
 
+If you installed the APK directly (not through Google Play) — e.g. from
+GitHub Releases — none of that applies either: there's no Play Store layer
+in the picture at all, so as far as we're concerned you're using Not App
+completely anonymously. If you installed it via Google Play, Google's own
+services (Play Store, Google Play Services running on your device) may
+collect their own data about the install and your device, same as for any
+other app on Play — that's between you and Google, and this policy has no
+visibility into or control over it.
+
 _Last updated: 2026-09-03._
