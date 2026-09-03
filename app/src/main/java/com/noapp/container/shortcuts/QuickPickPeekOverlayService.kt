@@ -157,8 +157,16 @@ class QuickPickPeekOverlayService : Service() {
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
             y = (TRASH_BOTTOM_MARGIN_DP * density).toInt()
         }
-        val trashCenterX = screenWidthPx / 2f
-        val trashCenterY = screenHeightPx - trashParams.y - trashSizePx / 2f
+        // Read back from the actual attached view instead of computing it from the Gravity/
+        // offset math ourselves — a real Window's resolved on-screen position is the ground
+        // truth; deriving it independently is an easy way to end up off by enough that the
+        // drop point silently never registers as "over the trash".
+        val trashLocation = IntArray(2)
+        fun trashCenter(): Pair<Float, Float>? {
+            val t = trashView ?: return null
+            t.getLocationOnScreen(trashLocation)
+            return (trashLocation[0] + trashSizePx / 2f) to (trashLocation[1] + trashSizePx / 2f)
+        }
 
         var downRawX = 0f
         var downRawY = 0f
@@ -229,8 +237,9 @@ class QuickPickPeekOverlayService : Service() {
 
                         val bubbleCenterX = params.x + sizePx / 2f
                         val bubbleCenterY = params.y + sizePx / 2f
-                        val distanceToTrash = hypot((bubbleCenterX - trashCenterX).toDouble(), (bubbleCenterY - trashCenterY).toDouble())
-                        val nowOverTrash = distanceToTrash < trashActivateRadiusPx
+                        val (trashCx, trashCy) = trashCenter() ?: (Float.NaN to Float.NaN)
+                        val nowOverTrash = !trashCx.isNaN() &&
+                            hypot((bubbleCenterX - trashCx).toDouble(), (bubbleCenterY - trashCy).toDouble()) < trashActivateRadiusPx
                         if (nowOverTrash != overTrash) {
                             overTrash = nowOverTrash
                             view.animate().scaleX(if (overTrash) 0.7f else 1f).scaleY(if (overTrash) 0.7f else 1f)
