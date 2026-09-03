@@ -160,7 +160,7 @@ private fun RecentAppsRow(onLaunched: () -> Unit) {
 
     LazyRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
     ) {
         items(recentApps, key = { it.packageName }) { app ->
             Box(

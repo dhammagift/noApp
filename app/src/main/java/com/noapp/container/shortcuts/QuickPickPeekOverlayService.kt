@@ -1,6 +1,5 @@
 package com.noapp.container.shortcuts
 
-import android.animation.ValueAnimator
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -13,10 +12,11 @@ import android.provider.Settings
 import android.view.Display
 import android.view.Gravity
 import android.view.MotionEvent
+import android.view.VelocityTracker
 import android.view.View
 import android.view.WindowManager
-import android.view.animation.DecelerateInterpolator
 import android.widget.ImageView
+import android.widget.OverScroller
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import com.noapp.container.QuickPickActivity
@@ -34,7 +34,6 @@ private const val TAP_SLOP_DP = 8
 private const val TRASH_SIZE_DP = 64
 private const val TRASH_BOTTOM_MARGIN_DP = 32
 private const val TRASH_ACTIVATE_RADIUS_DP = 56
-private const val SNAP_ANIM_MS = 220L
 
 /**
  * MIX/LIST mode's collapsed-list affordance: a small draggable button drawn as a
@@ -47,6 +46,11 @@ private const val SNAP_ANIM_MS = 220L
  *
  * Only started when Settings.canDrawOverlays() is already true — see the call site
  * in QuickPickSheet.kt, which falls back to an in-Activity peek otherwise.
+ *
+ * Dragging carries real momentum on release (OverScroller, the same friction-based
+ * fling used for scrolling) instead of snapping to a screen edge — the user should be
+ * free to leave it wherever they actually let go, just decelerating naturally rather
+ * than stopping dead.
  */
 class QuickPickPeekOverlayService : Service() {
     private var windowManager: WindowManager? = null
@@ -157,32 +161,40 @@ class QuickPickPeekOverlayService : Service() {
         var downParamY = 0
         var dragging = false
         var overTrash = false
-        var activeAnimator: ValueAnimator? = null
+        val scroller = OverScroller(overlayContext)
+        var velocityTracker: VelocityTracker? = null
 
         fun removeTrashView() {
             trashView?.let { runCatching { wm.removeView(it) } }
             trashView = null
         }
 
-        fun snapToNearestEdge() {
-            val targetX = if (params.x + sizePx / 2 < screenWidthPx / 2) 0 else maxX
-            activeAnimator?.cancel()
-            activeAnimator = ValueAnimator.ofInt(params.x, targetX).apply {
-                duration = SNAP_ANIM_MS
-                interpolator = DecelerateInterpolator()
-                addUpdateListener {
-                    params.x = it.animatedValue as Int
+        // Real momentum instead of a forced snap: whatever speed the finger was moving at
+        // release keeps carrying the bubble, decelerating via the same friction curve
+        // Android uses for scroll flings, until it comes to rest on its own — wherever
+        // that happens to be, clamped to the screen but never pulled toward an edge.
+        fun flingToRest(velocityX: Int, velocityY: Int) {
+            scroller.forceFinished(true)
+            scroller.fling(params.x, params.y, velocityX, velocityY, 0, maxX, 0, maxY)
+            fun step() {
+                if (scroller.computeScrollOffset()) {
+                    params.x = scroller.currX
+                    params.y = scroller.currY
                     runCatching { wm.updateViewLayout(view, params) }
+                    view.postOnAnimation(::step)
+                } else {
+                    prefs.edit().putInt(KEY_PEEK_X, params.x).putInt(KEY_PEEK_Y, params.y).apply()
                 }
-                start()
             }
-            prefs.edit().putInt(KEY_PEEK_X, targetX).putInt(KEY_PEEK_Y, params.y).apply()
+            step()
         }
 
         view.setOnTouchListener { _, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    activeAnimator?.cancel()
+                    scroller.forceFinished(true)
+                    velocityTracker?.recycle()
+                    velocityTracker = VelocityTracker.obtain().apply { addMovement(event) }
                     downRawX = event.rawX
                     downRawY = event.rawY
                     downParamX = params.x
@@ -192,6 +204,7 @@ class QuickPickPeekOverlayService : Service() {
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
+                    velocityTracker?.addMovement(event)
                     val dx = event.rawX - downRawX
                     val dy = event.rawY - downRawY
                     if (!dragging && (abs(dx) > tapSlopPx || abs(dy) > tapSlopPx)) {
@@ -223,12 +236,17 @@ class QuickPickPeekOverlayService : Service() {
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    velocityTracker?.addMovement(event)
                     if (dragging) {
                         removeTrashView()
                         if (overTrash) {
                             stopSelf()
                         } else {
-                            snapToNearestEdge()
+                            velocityTracker?.computeCurrentVelocity(1000)
+                            flingToRest(
+                                velocityTracker?.xVelocity?.roundToInt() ?: 0,
+                                velocityTracker?.yVelocity?.roundToInt() ?: 0
+                            )
                         }
                     } else if (event.actionMasked == MotionEvent.ACTION_UP) {
                         startActivity(
@@ -236,6 +254,8 @@ class QuickPickPeekOverlayService : Service() {
                         )
                         stopSelf()
                     }
+                    velocityTracker?.recycle()
+                    velocityTracker = null
                     true
                 }
                 else -> false
