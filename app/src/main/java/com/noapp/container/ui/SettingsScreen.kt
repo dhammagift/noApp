@@ -65,11 +65,11 @@ import com.noapp.container.recents.RecentApps
 import com.noapp.container.shortcuts.QuickPickPeekOverlayService
 import com.noapp.container.shortcuts.ShortcutSync
 
-private const val GITHUB_URL = "https://github.com/dhammagift/noApp"
+private const val GITHUB_URL = "https://github.com/dhammagift/notApp"
 private const val GITHUB_RELEASES_URL = "$GITHUB_URL/releases/latest"
 
 // TODO: replace with a real hosted privacy policy page before publishing to the Play Store
-private const val PRIVACY_POLICY_URL = "https://github.com/dhammagift/noApp/blob/main/PRIVACY.md"
+private const val PRIVACY_POLICY_URL = "https://github.com/dhammagift/notApp/blob/main/PRIVACY.md"
 
 @Composable
 private fun IconVariant.displayName(): String = when (id) {
