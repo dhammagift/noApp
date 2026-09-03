@@ -59,6 +59,7 @@ import com.noapp.container.icon.ICON_VARIANTS
 import com.noapp.container.icon.IconVariant
 import com.noapp.container.model.AppConfig
 import com.noapp.container.model.AppMode
+import com.noapp.container.recents.RecentApps
 import com.noapp.container.shortcuts.ShortcutSync
 
 private const val GITHUB_URL = "https://github.com/dhammagift/noApp"
@@ -87,6 +88,7 @@ fun SettingsScreen(
     onUseAllSlotsInDirectModeChanged: (Boolean) -> Unit,
     onIconVariantChanged: (String) -> Unit,
     onShowPeekBubbleChanged: (Boolean) -> Unit,
+    onShowRecentAppsChanged: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -128,6 +130,16 @@ fun SettingsScreen(
             onUseAllSlotsInDirectModeChanged(true)
         }
         // Declined: leave the option off, config was never actually flipped.
+    }
+
+    var showUsageAccessExplainer by remember { mutableStateOf(false) }
+    val usageAccessSettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (RecentApps.hasUsageAccess(context)) {
+            onShowRecentAppsChanged(true)
+        }
+        // Declined (or the user just didn't find/enable it): leave the option off.
     }
 
     Scaffold(
@@ -226,6 +238,23 @@ fun SettingsScreen(
                         Switch(
                             checked = config.showPeekBubble,
                             onCheckedChange = onShowPeekBubbleChanged
+                        )
+                    }
+                )
+                HorizontalDivider()
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.settings_show_recent_apps)) },
+                    supportingContent = { Text(stringResource(R.string.settings_show_recent_apps_hint)) },
+                    trailingContent = {
+                        Switch(
+                            checked = config.showRecentApps,
+                            onCheckedChange = { turningOn ->
+                                when {
+                                    !turningOn -> onShowRecentAppsChanged(false)
+                                    RecentApps.hasUsageAccess(context) -> onShowRecentAppsChanged(true)
+                                    else -> showUsageAccessExplainer = true
+                                }
+                            }
                         )
                     }
                 )
@@ -335,6 +364,23 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showOverlayExplainer = false }) { Text(stringResource(R.string.settings_cancel)) }
+            }
+        )
+    }
+
+    if (showUsageAccessExplainer) {
+        AlertDialog(
+            onDismissRequest = { showUsageAccessExplainer = false },
+            title = { Text(stringResource(R.string.settings_usage_access_dialog_title)) },
+            text = { Text(stringResource(R.string.settings_usage_access_dialog_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showUsageAccessExplainer = false
+                    usageAccessSettingsLauncher.launch(Intent(AndroidSettings.ACTION_USAGE_ACCESS_SETTINGS))
+                }) { Text(stringResource(R.string.settings_continue)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUsageAccessExplainer = false }) { Text(stringResource(R.string.settings_cancel)) }
             }
         )
     }

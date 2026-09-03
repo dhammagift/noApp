@@ -11,6 +11,10 @@
     <string name="settings_use_all_slots_off">One shortcut slot is reserved for a permanent Configure entry</string>
     <string name="settings_show_peek_bubble">Show floating button when swiping the list away</string>
     <string name="settings_show_peek_bubble_hint">Off: swiping the list away just closes it, like before</string>
+    <string name="settings_show_recent_apps">Show recent apps at top of list</string>
+    <string name="settings_show_recent_apps_hint">A row of icons for apps you\'ve used recently — needs Usage access</string>
+    <string name="settings_usage_access_dialog_title">Usage access</string>
+    <string name="settings_usage_access_dialog_text">To show a row of recently-used apps, Not App needs the \"Usage access\" permission. You\'ll be taken to system settings — find Not App in the list and turn it on.</string>
     <string name="settings_pin_title">Pin \"%1$s\" to home screen</string>
     <string name="settings_pin_default_item">your first item</string>
     <string name="settings_pin_hint_enabled">Adds a separate icon that launches it directly, next to Not App</string>

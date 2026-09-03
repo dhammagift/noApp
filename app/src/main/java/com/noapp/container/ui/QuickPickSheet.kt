@@ -16,12 +16,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -30,6 +32,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,10 +45,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.noapp.container.R
+import com.noapp.container.icon.AppIcon
 import com.noapp.container.icon.SlotIcon
 import com.noapp.container.model.ShortcutSlot
+import com.noapp.container.recents.RecentApp
+import com.noapp.container.recents.RecentApps
 import com.noapp.container.shortcuts.ActionDispatcher
 import com.noapp.container.shortcuts.QuickPickPeekOverlayService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Anchored to the bottom of the screen by ModalBottomSheet itself — easy thumb
@@ -64,6 +72,7 @@ fun QuickPickSheet(
     slots: List<ShortcutSlot>,
     sharedText: String?,
     allowPeek: Boolean = false,
+    showRecentApps: Boolean = false,
     onConfigure: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -115,6 +124,9 @@ fun QuickPickSheet(
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                 )
             }
+            if (showRecentApps) {
+                RecentAppsRow(onLaunched = { (context as? Activity)?.finish() })
+            }
             LazyColumn(Modifier.heightIn(max = maxListHeight)) {
                 items(slots, key = { it.id }) { slot ->
                     ListItem(
@@ -129,6 +141,44 @@ fun QuickPickSheet(
             }
         }
     }
+}
+
+/**
+ * Compact, icon-only row of recently-foregrounded apps (see recents/RecentApps.kt for why
+ * this is usage history rather than a true running-tasks list) — deliberately not full
+ * ListItem rows like the configured slots below, so it reads as a quick strip, not another
+ * item type. Renders nothing while empty (no permission, or no usage history yet).
+ */
+@Composable
+private fun RecentAppsRow(onLaunched: () -> Unit) {
+    val context = LocalContext.current
+    var recentApps by remember { mutableStateOf<List<RecentApp>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        recentApps = withContext(Dispatchers.IO) { RecentApps.query(context) }
+    }
+    if (recentApps.isEmpty()) return
+
+    LazyRow(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(recentApps, key = { it.packageName }) { app ->
+            Box(
+                Modifier
+                    .clip(CircleShape)
+                    .clickable(onClickLabel = app.label) {
+                        context.packageManager.getLaunchIntentForPackage(app.packageName)?.let {
+                            context.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        }
+                        onLaunched()
+                    }
+                    .padding(4.dp)
+            ) {
+                AppIcon(packageName = app.packageName, size = 36.dp)
+            }
+        }
+    }
+    HorizontalDivider()
 }
 
 /**

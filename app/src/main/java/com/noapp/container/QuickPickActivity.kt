@@ -53,6 +53,11 @@ class QuickPickActivity : ComponentActivity() {
                     allowPeek = (config.mode == AppMode.LIST || config.mode == AppMode.MIX) &&
                         sharedText == null &&
                         config.showPeekBubble,
+                    // Recent apps are a plain launch, not a share target, so this stays off
+                    // for the share sheet the same way allowPeek does.
+                    showRecentApps = (config.mode == AppMode.LIST || config.mode == AppMode.MIX) &&
+                        sharedText == null &&
+                        config.showRecentApps,
                     onConfigure = {
                         startActivity(
                             Intent(this, MainActivity::class.java)

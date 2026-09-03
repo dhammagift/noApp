@@ -1,9 +1,18 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Used for two translucent overlays, both optional and gated on this being granted:
          DIRECT mode's "use all shortcut slots" Configure gear (GearOverlayService), and
          MIX mode's draggable collapsed-list bubble (QuickPickPeekOverlayService). -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Optional, gated on Settings > "Show recent apps": lets QuickPickSheet show a row of
+         recently-used apps (nearest legitimate proxy for a true running-tasks list, which no
+         third-party app can read on modern Android) via UsageStatsManager. Only grantable
+         through Settings > Usage access, not a runtime permission dialog. -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
 
     <!-- Required to list installed launchable apps for the App-type slot picker on API 30+ package visibility -->
     <queries>

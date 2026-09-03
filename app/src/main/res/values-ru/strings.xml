@@ -8,6 +8,10 @@
     <string name="settings_use_all_slots_off">Один слот шортката зарезервирован под постоянный ярлык \"Настройки\"</string>
     <string name="settings_show_peek_bubble">Показывать плавающую кнопку при закрытии списка</string>
     <string name="settings_show_peek_bubble_hint">Выключено: свайп списка просто закрывает его, как раньше</string>
+    <string name="settings_show_recent_apps">Показывать недавние приложения вверху списка</string>
+    <string name="settings_show_recent_apps_hint">Ряд иконок недавно использованных приложений — нужен доступ к использованию</string>
+    <string name="settings_usage_access_dialog_title">Доступ к использованию</string>
+    <string name="settings_usage_access_dialog_text">Чтобы показывать ряд недавно использованных приложений, Not App нужно разрешение \"Доступ к использованию\". Откроются системные настройки — найдите там Not App и включите его.</string>
     <string name="settings_pin_title">Закрепить \"%1$s\" на рабочем столе</string>
     <string name="settings_pin_default_item">первый ярлык</string>
     <string name="settings_pin_hint_enabled">Добавляет отдельную иконку рядом с Not App, которая сразу запускает этот ярлык</string>

@@ -37,6 +37,7 @@ object ConfigStore {
             .put("useAllSlotsInDirectMode", config.useAllSlotsInDirectMode)
             .put("iconVariant", config.iconVariant)
             .put("showPeekBubble", config.showPeekBubble)
+            .put("showRecentApps", config.showRecentApps)
             .toString()
     }
 
@@ -64,7 +65,8 @@ object ConfigStore {
             slots = slots.ifEmpty { ShortcutSlot.emptySlots() },
             useAllSlotsInDirectMode = root.optBoolean("useAllSlotsInDirectMode", false),
             iconVariant = root.optString("iconVariant", "default"),
-            showPeekBubble = root.optBoolean("showPeekBubble", true)
+            showPeekBubble = root.optBoolean("showPeekBubble", true),
+            showRecentApps = root.optBoolean("showRecentApps", false)
         )
     }.getOrDefault(AppConfig())
 
