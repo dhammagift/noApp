@@ -47,12 +47,15 @@ class MainActivity : ComponentActivity() {
         // saved, or any other drift; a no-op the rest of the time. Doesn't affect this launch,
         // only the next one.
         com.noapp.container.icon.applyLauncherComponent(this, initialConfig.iconVariant, initialConfig.mode)
+        if (dispatchIfShortcut(intent, initialConfig)) return
+
         // Self-heals installs whose shortcuts were published before ShortcutSync started
         // pinning them to the enabled alias explicitly (see its own doc comment) — those
-        // never show up in the long-press menu at all until re-synced, and nothing else
-        // in this app calls sync() except an actual edit.
+        // never show up in the long-press menu at all until re-synced, and nothing else in
+        // this app calls sync() except an actual edit. Only reached once dispatchIfShortcut
+        // has already decided this isn't a fast dispatch, so it never adds work (or risk) to
+        // that hot path.
         ShortcutSync.sync(this, initialConfig.mode, initialConfig.slots, initialConfig.iconVariant, initialConfig.useAllSlotsInDirectMode)
-        if (dispatchIfShortcut(intent, initialConfig)) return
 
         setContent {
             NoAppTheme {

@@ -36,29 +36,35 @@ private const val CONFIGURE_SHORTCUT_ID = "configure"
  * in the user's configured order.
  */
 object ShortcutSync {
+    // Shortcuts are a nice-to-have, never something allowed to take core app dispatch down
+    // with it — this OS integration can fail in ways specific to a given device/launcher that
+    // are impossible to fully predict, so every call is defensive, same as the rest of this
+    // package (ActionDispatcher, GearOverlayService) already treats its own OS calls.
     fun sync(context: Context, mode: AppMode, slots: List<ShortcutSlot>, iconVariant: String, useAllSlotsInDirectMode: Boolean = false) {
-        val budget = ShortcutManagerCompat.getMaxShortcutCountPerActivity(context)
-            .let { if (it <= 0) 4 else it } // defensive; real launchers always report > 0
-        // Without an explicit activity, several launchers silently show no shortcuts at all
-        // for an app whose actual launcher icon is one of many activity-aliases rather than a
-        // plain activity — see enabledLauncherComponent's doc comment.
-        val component = enabledLauncherComponent(context, iconVariant, mode)
+        runCatching {
+            val budget = ShortcutManagerCompat.getMaxShortcutCountPerActivity(context)
+                .let { if (it <= 0) 4 else it } // defensive; real launchers always report > 0
+            // Without an explicit activity, several launchers silently show no shortcuts at all
+            // for an app whose actual launcher icon is one of many activity-aliases rather than a
+            // plain activity — see enabledLauncherComponent's doc comment.
+            val component = enabledLauncherComponent(context, iconVariant, mode)
 
-        val shortcuts = when (mode) {
-            AppMode.DIRECT -> {
-                val mainConfigured = slots.getOrNull(0)?.isConfigured == true
-                val auxSlots = slots.filter { it.id != 0 && it.isConfigured }
-                buildList {
-                    if (mainConfigured && !useAllSlotsInDirectMode && budget >= 1) add(configureShortcut(context, component))
-                    addAll(auxSlots.take((budget - size).coerceAtLeast(0)).map { shortcutFor(context, it, component) })
+            val shortcuts = when (mode) {
+                AppMode.DIRECT -> {
+                    val mainConfigured = slots.getOrNull(0)?.isConfigured == true
+                    val auxSlots = slots.filter { it.id != 0 && it.isConfigured }
+                    buildList {
+                        if (mainConfigured && !useAllSlotsInDirectMode && budget >= 1) add(configureShortcut(context, component))
+                        addAll(auxSlots.take((budget - size).coerceAtLeast(0)).map { shortcutFor(context, it, component) })
+                    }
+                }
+                AppMode.LIST, AppMode.MIX -> {
+                    slots.filter { it.isConfigured }.take(budget).map { shortcutFor(context, it, component) }
                 }
             }
-            AppMode.LIST, AppMode.MIX -> {
-                slots.filter { it.isConfigured }.take(budget).map { shortcutFor(context, it, component) }
-            }
+            // Full replace each time: always under budget by construction, no drift bookkeeping needed.
+            ShortcutManagerCompat.setDynamicShortcuts(context, shortcuts)
         }
-        // Full replace each time: always under budget by construction, no drift bookkeeping needed.
-        ShortcutManagerCompat.setDynamicShortcuts(context, shortcuts)
     }
 
     private fun configureShortcut(context: Context, component: ComponentName): ShortcutInfoCompat =
