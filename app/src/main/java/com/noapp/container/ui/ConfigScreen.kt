@@ -14,6 +14,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,13 +28,12 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -48,6 +48,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -73,6 +74,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import com.noapp.container.R
 import com.noapp.container.icon.AndroidIcon
@@ -104,6 +107,63 @@ private fun AppMode.descriptionRes(): Int = when (this) {
     AppMode.LIST -> R.string.config_mode_list_desc
     AppMode.DIRECT -> R.string.config_mode_direct_desc
     AppMode.MIX -> R.string.config_mode_mix_desc
+}
+
+/**
+ * Full-screen instead of a narrow anchored dropdown: each mode's description is a
+ * couple of sentences (it has to explain what happens to the OS long-press
+ * shortcuts too), which read as an unreadably narrow column in a popup menu.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModePickerDialog(
+    currentMode: AppMode,
+    onModeSelected: (AppMode) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.fillMaxSize()) {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.config_mode_dialog_title)) },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_close))
+                        }
+                    }
+                )
+                Column(
+                    Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    AppMode.entries.forEach { candidate ->
+                        val selected = candidate == currentMode
+                        Surface(
+                            onClick = { onModeSelected(candidate) },
+                            shape = MaterialTheme.shapes.medium,
+                            color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(stringResource(candidate.labelRes()), style = MaterialTheme.typography.titleMedium)
+                                    Spacer(Modifier.padding(top = 4.dp))
+                                    Text(stringResource(candidate.descriptionRes()), style = MaterialTheme.typography.bodyMedium)
+                                }
+                                if (selected) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -145,40 +205,20 @@ fun ConfigScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
-                    var modeMenuExpanded by remember { mutableStateOf(false) }
-                    Box {
-                        AssistChip(
-                            onClick = { modeMenuExpanded = true },
-                            label = { Text(stringResource(mode.labelRes())) }
+                    var modeDialogVisible by remember { mutableStateOf(false) }
+                    AssistChip(
+                        onClick = { modeDialogVisible = true },
+                        label = { Text(stringResource(mode.labelRes())) }
+                    )
+                    if (modeDialogVisible) {
+                        ModePickerDialog(
+                            currentMode = mode,
+                            onModeSelected = {
+                                onModeChanged(it)
+                                modeDialogVisible = false
+                            },
+                            onDismiss = { modeDialogVisible = false }
                         )
-                        DropdownMenu(
-                            expanded = modeMenuExpanded,
-                            onDismissRequest = { modeMenuExpanded = false }
-                        ) {
-                            AppMode.entries.forEach { candidate ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Column(Modifier.width(260.dp)) {
-                                            Text(stringResource(candidate.labelRes()), style = MaterialTheme.typography.bodyLarge)
-                                            Text(
-                                                stringResource(candidate.descriptionRes()),
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    },
-                                    trailingIcon = {
-                                        if (candidate == mode) {
-                                            Icon(Icons.Default.Check, contentDescription = null)
-                                        }
-                                    },
-                                    onClick = {
-                                        onModeChanged(candidate)
-                                        modeMenuExpanded = false
-                                    }
-                                )
-                            }
-                        }
                     }
                     TextButton(onClick = { showFillDialog = true }) { Text(stringResource(R.string.config_fill)) }
                     IconButton(onClick = onOpenSettings) {

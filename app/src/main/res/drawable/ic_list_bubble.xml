@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFF">
+    <!-- Same glyph as Compose's Icons.Default.Menu (used by QuickPickSheet's collapsed
+         pill), rasterized here so the peek overlay — a plain View-based overlay, not
+         Compose — shows the identical icon instead of a lookalike emoji. -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M3,18h18v-2H3v2zM3,13h18v-2H3v2zM3,6v2h18V6H3z" />
+</vector>

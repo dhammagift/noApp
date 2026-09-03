@@ -19,7 +19,7 @@ Tapping the app icon brings up your full shortcut list in a sleek bottom sheet. 
 Tapping the app icon launches your primary shortcut instantly, no UI, no delay. Long tap for shortcuts to your backups and alternatives, managed by the OS.
 
 ### MIX Mode
-Tapping the app icon launches your primary shortcut instantly, same as DIRECT — but your full shortcut list also opens on top of it, so the rest of your items are always one tap away. Long tap still works too, managed by the OS.
+Tapping the app icon launches your primary shortcut instantly, same as DIRECT — but your full shortcut list also opens on top of it, so the rest of your items are always one tap away. Long tap still works too, managed by the OS. Swipe the list away and it collapses into a small draggable button instead of closing — drag it wherever's convenient, and it stays on screen (even over other apps, with the "draw over other apps" permission) until you tap it to bring the list back.
 
 ## Features
 

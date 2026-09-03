@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import com.noapp.container.data.ConfigStore
 import com.noapp.container.model.AppMode
 import com.noapp.container.shortcuts.EXTRA_OPEN_CONFIG
+import com.noapp.container.shortcuts.QuickPickPeekOverlayService
 import com.noapp.container.ui.QuickPickSheet
 import com.noapp.container.ui.theme.NoAppTheme
 
@@ -28,6 +29,9 @@ const val EXTRA_SHARED_TEXT = "extra_shared_text"
 class QuickPickActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // A fresh dispatch always supersedes any peek bubble left over from a previous
+        // one (harmless no-op if the service isn't running).
+        stopService(Intent(this, QuickPickPeekOverlayService::class.java))
         val sharedText = intent.getStringExtra(EXTRA_SHARED_TEXT)
         val config = ConfigStore.load(this)
         val slots = config.slots.filter { it.isConfigured }

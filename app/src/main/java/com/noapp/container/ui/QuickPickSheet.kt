@@ -1,6 +1,8 @@
 package com.noapp.container.ui
 
 import android.app.Activity
+import android.content.Intent
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -43,6 +45,7 @@ import com.noapp.container.R
 import com.noapp.container.icon.SlotIcon
 import com.noapp.container.model.ShortcutSlot
 import com.noapp.container.shortcuts.ActionDispatcher
+import com.noapp.container.shortcuts.QuickPickPeekOverlayService
 
 /**
  * Anchored to the bottom of the screen by ModalBottomSheet itself — easy thumb
@@ -64,6 +67,9 @@ fun QuickPickSheet(
     onConfigure: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    // Falls back to this in-Activity pill (below) only when the "draw over other
+    // apps" permission isn't granted — see the onDismissRequest branch below.
     var peeked by remember { mutableStateOf(false) }
     BackHandler(enabled = peeked) { onDismiss() }
 
@@ -72,7 +78,6 @@ fun QuickPickSheet(
         return
     }
 
-    val context = LocalContext.current
     // skipPartiallyExpanded: on a short display (e.g. a folded cover screen) the default
     // "partially expanded" peek state can leave only 1-2 rows visible with no obvious hint
     // to drag further — always render fully expanded instead. MIX's own peek affordance
@@ -81,7 +86,20 @@ fun QuickPickSheet(
     val maxListHeight = (LocalConfiguration.current.screenHeightDp * 0.6f).dp
 
     ModalBottomSheet(
-        onDismissRequest = { if (allowPeek) peeked = true else onDismiss() },
+        onDismissRequest = {
+            when {
+                !allowPeek -> onDismiss()
+                // Preferred path: a real system overlay that keeps showing over
+                // whatever the user switches to, not just this Activity's own window.
+                Settings.canDrawOverlays(context) -> {
+                    context.startService(Intent(context, QuickPickPeekOverlayService::class.java))
+                    onDismiss()
+                }
+                // No overlay permission: the in-Activity pill is at least usable
+                // while the user stays on top of whatever slot 0 launched.
+                else -> peeked = true
+            }
+        },
         sheetState = sheetState
     ) {
         Column(Modifier.padding(bottom = 24.dp)) {
