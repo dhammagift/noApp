@@ -43,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -112,7 +113,11 @@ fun QuickPickSheet(
                 else -> peeked = true
             }
         },
-        sheetState = sheetState
+        sheetState = sheetState,
+        // No scrim: this sheet already sits on top of a translucent Activity — the default
+        // dimming reads as a dark tint smeared under a see-through box, not a real sheet.
+        // Tap-outside-to-dismiss still works with the scrim invisible, it's just not drawn.
+        scrimColor = Color.Transparent
     ) {
         Column(Modifier.padding(bottom = 24.dp)) {
             var recentApps by remember { mutableStateOf<List<RecentApp>>(emptyList()) }
