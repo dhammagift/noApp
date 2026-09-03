@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -30,6 +31,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -112,20 +114,40 @@ fun QuickPickSheet(
         sheetState = sheetState
     ) {
         Column(Modifier.padding(bottom = 24.dp)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.End) {
+            var recentApps by remember { mutableStateOf<List<RecentApp>>(emptyList()) }
+            if (showRecentApps) {
+                LaunchedEffect(Unit) {
+                    recentApps = withContext(Dispatchers.IO) { RecentApps.query(context) }
+                }
+            }
+            // Recent apps and Configure share one compact header row instead of a row each —
+            // there's no real content to spread across two, and every row here costs sheet
+            // height that pushes the actual (real) items further from the thumb.
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (recentApps.isNotEmpty()) {
+                    RecentAppsIcons(
+                        apps = recentApps,
+                        modifier = Modifier.weight(1f),
+                        onLaunched = { (context as? Activity)?.finish() }
+                    )
+                    VerticalDivider(Modifier.height(24.dp).padding(horizontal = 4.dp))
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
                 IconButton(onClick = onConfigure) {
                     Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.quick_pick_configure_desc))
                 }
             }
+            if (recentApps.isNotEmpty()) HorizontalDivider()
             if (sharedText != null) {
                 Text(
                     stringResource(R.string.quick_pick_send_to, sharedText),
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                 )
-            }
-            if (showRecentApps) {
-                RecentAppsRow(onLaunched = { (context as? Activity)?.finish() })
             }
             LazyColumn(Modifier.heightIn(max = maxListHeight)) {
                 items(slots, key = { it.id }) { slot ->
@@ -144,25 +166,19 @@ fun QuickPickSheet(
 }
 
 /**
- * Compact, icon-only row of recently-foregrounded apps (see recents/RecentApps.kt for why
+ * Compact, icon-only strip of recently-foregrounded apps (see recents/RecentApps.kt for why
  * this is usage history rather than a true running-tasks list) — deliberately not full
- * ListItem rows like the configured slots below, so it reads as a quick strip, not another
- * item type. Renders nothing while empty (no permission, or no usage history yet).
+ * ListItem rows like the configured slots below, and deliberately sharing the Configure
+ * header row (see its call site) rather than a row of its own, to stay minimal.
  */
 @Composable
-private fun RecentAppsRow(onLaunched: () -> Unit) {
+private fun RecentAppsIcons(apps: List<RecentApp>, modifier: Modifier = Modifier, onLaunched: () -> Unit) {
     val context = LocalContext.current
-    var recentApps by remember { mutableStateOf<List<RecentApp>>(emptyList()) }
-    LaunchedEffect(Unit) {
-        recentApps = withContext(Dispatchers.IO) { RecentApps.query(context) }
-    }
-    if (recentApps.isEmpty()) return
-
     LazyRow(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
     ) {
-        items(recentApps, key = { it.packageName }) { app ->
+        items(apps, key = { it.packageName }) { app ->
             Box(
                 Modifier
                     .clip(CircleShape)
@@ -174,11 +190,10 @@ private fun RecentAppsRow(onLaunched: () -> Unit) {
                     }
                     .padding(4.dp)
             ) {
-                AppIcon(packageName = app.packageName, size = 36.dp)
+                AppIcon(packageName = app.packageName, size = 32.dp)
             }
         }
     }
-    HorizontalDivider()
 }
 
 /**

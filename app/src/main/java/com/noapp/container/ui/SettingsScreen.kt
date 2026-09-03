@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,6 +61,7 @@ import com.noapp.container.icon.IconVariant
 import com.noapp.container.model.AppConfig
 import com.noapp.container.model.AppMode
 import com.noapp.container.recents.RecentApps
+import com.noapp.container.shortcuts.QuickPickPeekOverlayService
 import com.noapp.container.shortcuts.ShortcutSync
 
 private const val GITHUB_URL = "https://github.com/dhammagift/noApp"
@@ -92,6 +94,14 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+
+    // Cheap insurance against the MIX/LIST peek bubble ever being stuck somewhere the user
+    // can't reach (e.g. after a display change while it was showing): visiting Settings —
+    // entering or leaving — always resets it back to its default corner.
+    DisposableEffect(Unit) {
+        QuickPickPeekOverlayService.resetSavedPosition(context)
+        onDispose { QuickPickPeekOverlayService.resetSavedPosition(context) }
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")

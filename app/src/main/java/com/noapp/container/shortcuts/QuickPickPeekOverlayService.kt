@@ -34,6 +34,11 @@ private const val TAP_SLOP_DP = 8
 private const val TRASH_SIZE_DP = 64
 private const val TRASH_BOTTOM_MARGIN_DP = 32
 private const val TRASH_ACTIVATE_RADIUS_DP = 56
+// Much higher than OverScroller's own default (0.015f) — releasing the bubble should read as
+// a soft, short settle, not an actual throw; combined with capping the velocity fed into it
+// (see MAX_FLING_VELOCITY_DP_PER_S), even a hard flick only ever travels a small distance.
+private const val FLING_FRICTION = 0.09f
+private const val MAX_FLING_VELOCITY_DP_PER_S = 1500f
 
 /**
  * MIX/LIST mode's collapsed-list affordance: a small draggable button drawn as a
@@ -161,7 +166,8 @@ class QuickPickPeekOverlayService : Service() {
         var downParamY = 0
         var dragging = false
         var overTrash = false
-        val scroller = OverScroller(overlayContext)
+        val scroller = OverScroller(overlayContext).apply { setFriction(FLING_FRICTION) }
+        val maxFlingVelocityPx = MAX_FLING_VELOCITY_DP_PER_S * density
         var velocityTracker: VelocityTracker? = null
 
         fun removeTrashView() {
@@ -242,7 +248,7 @@ class QuickPickPeekOverlayService : Service() {
                         if (overTrash) {
                             stopSelf()
                         } else {
-                            velocityTracker?.computeCurrentVelocity(1000)
+                            velocityTracker?.computeCurrentVelocity(1000, maxFlingVelocityPx)
                             flingToRest(
                                 velocityTracker?.xVelocity?.roundToInt() ?: 0,
                                 velocityTracker?.yVelocity?.roundToInt() ?: 0
@@ -273,5 +279,22 @@ class QuickPickPeekOverlayService : Service() {
         trashView?.let { v -> runCatching { windowManager?.removeView(v) } }
         trashView = null
         super.onDestroy()
+    }
+
+    companion object {
+        /**
+         * Escape hatch in case the bubble ever ends up somewhere the user can't get back to
+         * (e.g. left stranded after a display/orientation change while showing): forgets the
+         * saved position — the next bubble starts fresh at the default corner — and removes
+         * any bubble showing right now. Called on entering and leaving Settings.
+         */
+        fun resetSavedPosition(context: Context) {
+            context.stopService(Intent(context, QuickPickPeekOverlayService::class.java))
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .remove(KEY_PEEK_X)
+                .remove(KEY_PEEK_Y)
+                .apply()
+        }
     }
 }
