@@ -37,7 +37,9 @@
     <string name="settings_peek_overlay_dialog_text">To collapse into a draggable floating button instead of just closing, I need the \"draw over other apps\" permission. I\'ll open system settings now — locate \"Not App\" and turn it on there.</string>
     <string name="settings_continue">Continue</string>
     <string name="settings_cancel">Cancel</string>
-    <string name="restart_hint_message">Done — I\'ll fully apply this next time you close and reopen me.</string>
+    <string name="restart_hint_message_list">Done. Next time you tap my icon I\'ll start in List mode.</string>
+    <string name="restart_hint_message_direct">Done. Next time you tap my icon I\'ll start in Direct mode.</string>
+    <string name="restart_hint_message_mix">Done. Next time you tap my icon I\'ll start in Mix mode.</string>
     <string name="settings_back">Back</string>
     <string name="toast_exported">Exported</string>
     <string name="toast_export_failed">Export failed: %1$s</string>

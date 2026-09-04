@@ -102,11 +102,11 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
-    val restartHintMessage = stringResource(R.string.restart_hint_message)
+    val restartHintText = restartHintMessage(config.mode)
 
     // See ConfigScreen's own copy of this for why a token, not the message or a Boolean.
     LaunchedEffect(restartHintToken) {
-        if (restartHintToken > 0) snackbarHostState.showSnackbar(restartHintMessage)
+        if (restartHintToken > 0) snackbarHostState.showSnackbar(restartHintText)
     }
 
     // Cheap insurance against the MIX/LIST peek bubble ever being stuck somewhere the user

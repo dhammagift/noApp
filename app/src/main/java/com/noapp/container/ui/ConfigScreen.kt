@@ -225,14 +225,14 @@ fun ConfigScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val undoLabel = stringResource(R.string.common_undo)
-    val restartHintMessage = stringResource(R.string.restart_hint_message)
+    val restartHintText = restartHintMessage(mode)
 
     // Reuses this screen's own Scaffold-hosted SnackbarHost (already correctly positioned above
     // the FAB and system bars, same as the Undo snackbar below) rather than a separate host of
     // its own — token, not the message text or a Boolean, as the LaunchedEffect key so a second
     // hint while an earlier one is still showing is a distinct key and actually re-triggers.
     LaunchedEffect(restartHintToken) {
-        if (restartHintToken > 0) snackbarHostState.showSnackbar(restartHintMessage)
+        if (restartHintToken > 0) snackbarHostState.showSnackbar(restartHintText)
     }
 
     fun removeWithUndo(previous: List<ShortcutSlot>, updated: List<ShortcutSlot>, message: String) {

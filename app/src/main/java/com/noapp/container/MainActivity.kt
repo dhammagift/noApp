@@ -239,7 +239,11 @@ class MainActivity : ComponentActivity() {
         if (isPlainMainTap) {
             config.slots.getOrNull(0)?.let { ActionDispatcher.execute(this, it) }
             when (config.mode) {
-                AppMode.DIRECT -> if (config.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)) {
+                // Always shown for Direct now, not just when useAllSlotsInDirectMode frees up the
+                // long-press Configure entry — having it appear in some cases but not others was
+                // confusing. Whether Configure also has its own long-press entry is still purely
+                // the toggle's call (see ShortcutSync); this is just an always-available second path.
+                AppMode.DIRECT -> if (Settings.canDrawOverlays(this)) {
                     startService(Intent(this, GearOverlayService::class.java))
                 }
                 AppMode.MIX -> startActivity(Intent(this, QuickPickActivity::class.java))
