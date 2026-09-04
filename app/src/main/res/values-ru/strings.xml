@@ -28,8 +28,8 @@
     <string name="settings_version_unknown">неизвестно</string>
     <string name="settings_overlay_dialog_title">Как мне попасть в Настройки</string>
     <string name="settings_overlay_dialog_text">Когда вы используете все слоты шорткатов, я убираю «Настройки» из долгого нажатия — их место занимают ваши ярлыки. Вместо этого я на миг мелькну шестерёнкой ⚙ поверх запущенного приложения. Для этого мне нужно разрешение «Отображение поверх других приложений» — включите его в открывшихся системных настройках.</string>
-    <string name="settings_peek_overlay_dialog_title">Мне нужно быть поверх экрана</string>
-    <string name="settings_peek_overlay_dialog_text">Чтобы свернуться в плавающую кнопку вместо простого закрытия, мне нужно разрешение «Отображение поверх других приложений». Сейчас открою системные настройки — включите его там для меня.</string>
+    <string name="settings_peek_overlay_dialog_title">Для плавающей кнопки мне нужно разрешение «поверх экрана»</string>
+    <string name="settings_peek_overlay_dialog_text">Чтобы сворачиваться в перетаскиваемую плавающую кнопку вместо простого закрытия, мне нужно разрешение «Отображение поверх других приложений». Сейчас открою системные настройки — найдите там «Not App» и включите его.</string>
     <string name="settings_continue">Продолжить</string>
     <string name="settings_cancel">Отмена</string>
     <string name="settings_back">Назад</string>
