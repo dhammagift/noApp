@@ -56,10 +56,14 @@
              in Theme.NoApp.Transparent), which is the only way to make a launcher tap in LIST
              mode never flash a splash at all — MainActivity's own theme is opaque, so routing
              a LIST tap through it first (dispatch-then-finish) always flashed its starting
-             window first, no matter how briefly. -->
+             window first, no matter how briefly. singleTask so an impatient repeat tap/share
+             reuses the one instance (onNewIntent) instead of stacking a second translucent
+             sheet on top of the first — dismissing the top one used to reveal a duplicate
+             underneath. -->
         <activity
             android:name=".QuickPickActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.NoApp.Transparent" />
 
         <!-- Launcher icons (Settings > App icon). For each variant, exactly one of its two

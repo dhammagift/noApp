@@ -49,14 +49,17 @@ import com.noapp.container.model.SlotType
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SlotEditScreen(mode: AppMode, slot: ShortcutSlot, onSave: (ShortcutSlot) -> Unit, onCancel: () -> Unit) {
-    var type by remember { mutableStateOf(slot.type) }
+    // A slot with no type yet (tapped straight from an empty row, not the "+" menu) defaults
+    // to App — by far the most common choice — so it gets the same immediate-picker treatment
+    // below instead of landing on the type-selector chips first.
+    var type by remember { mutableStateOf(slot.type ?: SlotType.APP) }
     var label by remember { mutableStateOf(slot.label) }
     var color by remember { mutableStateOf(slot.color) }
     var param by remember { mutableStateOf(slot.param) }
     var customIcon by remember { mutableStateOf(slot.customIcon) }
-    // Landing here fresh on an unconfigured App slot (from the "+" menu) — skip the
-    // extra "Choose app" tap and open the picker immediately.
-    var showAppPicker by remember { mutableStateOf(slot.type == SlotType.APP && slot.param.isBlank()) }
+    // Landing here fresh on an unconfigured App slot — skip the extra "Choose app" tap and
+    // open the picker immediately.
+    var showAppPicker by remember { mutableStateOf(type == SlotType.APP && param.isBlank()) }
 
     val title = if (mode != AppMode.LIST && slot.id == 0) {
         stringResource(R.string.slot_edit_title_main)

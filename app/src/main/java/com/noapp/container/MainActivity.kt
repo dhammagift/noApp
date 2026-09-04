@@ -38,6 +38,9 @@ private sealed class Screen {
 }
 
 class MainActivity : ComponentActivity() {
+    // Hoisted out of setContent (rather than a plain `remember`) so onNewIntent can navigate
+    // back to Config below without needing a reference into the running composition.
+    private var screen: Screen by mutableStateOf(Screen.Config)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,7 +68,6 @@ class MainActivity : ComponentActivity() {
                 var iconVariant by remember { mutableStateOf(initialConfig.iconVariant) }
                 var showPeekBubble by remember { mutableStateOf(initialConfig.showPeekBubble) }
                 var showRecentApps by remember { mutableStateOf(initialConfig.showRecentApps) }
-                var screen by remember { mutableStateOf<Screen>(Screen.Config) }
 
                 fun persist() {
                     val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps)
@@ -130,9 +132,17 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        dispatchIfShortcut(intent, ConfigStore.load(this))
-        // A repeat share/tap while the UI is already open is rare enough to just leave the
-        // current screen as-is rather than re-plumb intent state into the composition.
+        if (intent.getBooleanExtra(EXTRA_OPEN_CONFIG, false)) {
+            // QuickPickActivity redirects here with this extra when there's nothing configured
+            // yet to show — e.g. this instance was already running in the background on some
+            // other screen. Navigate to Config so the user actually lands somewhere they can
+            // add a shortcut, instead of just resurfacing whatever screen was left open.
+            screen = Screen.Config
+        } else {
+            dispatchIfShortcut(intent, ConfigStore.load(this))
+            // A repeat share/tap while the UI is already open is rare enough to just leave the
+            // current screen as-is rather than re-plumb intent state into the composition.
+        }
     }
 
     /**
@@ -220,6 +230,7 @@ private fun NoAppRoot(
         is Screen.Config -> ConfigScreen(
             mode = mode,
             slots = slots,
+            showPeekBubble = showPeekBubble,
             onEditSlot = { index -> onScreenChange(Screen.EditSlot(index)) },
             onAddSlot = { type -> onScreenChange(Screen.NewSlot(type)) },
             onOpenSettings = { onScreenChange(Screen.Settings) },

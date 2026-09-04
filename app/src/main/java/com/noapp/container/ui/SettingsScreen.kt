@@ -60,7 +60,6 @@ import com.noapp.container.icon.ICON_VARIANTS
 import com.noapp.container.icon.IconVariant
 import com.noapp.container.icon.enabledLauncherComponent
 import com.noapp.container.model.AppConfig
-import com.noapp.container.model.AppMode
 import com.noapp.container.recents.RecentApps
 import com.noapp.container.shortcuts.QuickPickPeekOverlayService
 import com.noapp.container.shortcuts.ShortcutSync
@@ -144,6 +143,16 @@ fun SettingsScreen(
         // Declined: leave the option off, config was never actually flipped.
     }
 
+    var showPeekOverlayExplainer by remember { mutableStateOf(false) }
+    val peekOverlaySettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (AndroidSettings.canDrawOverlays(context)) {
+            onShowPeekBubbleChanged(true)
+        }
+        // Declined: leave the option off, config was never actually flipped.
+    }
+
     var showUsageAccessExplainer by remember { mutableStateOf(false) }
     val usageAccessSettingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -216,62 +225,67 @@ fun SettingsScreen(
                 HorizontalDivider()
             }
             val firstSlot = config.slots.getOrNull(0)?.takeIf { it.isConfigured }
-            if (config.mode == AppMode.DIRECT) {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.settings_use_all_slots)) },
-                    supportingContent = {
-                        Text(
-                            stringResource(
-                                if (config.useAllSlotsInDirectMode) R.string.settings_use_all_slots_on
-                                else R.string.settings_use_all_slots_off
-                            )
+            // All three rows below stay visible in every mode (not just the mode they affect) so
+            // Settings doesn't change shape as you switch modes — each one's own copy says which
+            // mode(s) it works in instead.
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_use_all_slots)) },
+                supportingContent = {
+                    Text(
+                        stringResource(
+                            if (config.useAllSlotsInDirectMode) R.string.settings_use_all_slots_on
+                            else R.string.settings_use_all_slots_off
                         )
-                    },
-                    trailingContent = {
-                        Switch(
-                            checked = config.useAllSlotsInDirectMode,
-                            onCheckedChange = { turningOn ->
-                                when {
-                                    !turningOn -> onUseAllSlotsInDirectModeChanged(false)
-                                    AndroidSettings.canDrawOverlays(context) -> onUseAllSlotsInDirectModeChanged(true)
-                                    else -> showOverlayExplainer = true
-                                }
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        checked = config.useAllSlotsInDirectMode,
+                        onCheckedChange = { turningOn ->
+                            when {
+                                !turningOn -> onUseAllSlotsInDirectModeChanged(false)
+                                AndroidSettings.canDrawOverlays(context) -> onUseAllSlotsInDirectModeChanged(true)
+                                else -> showOverlayExplainer = true
                             }
-                        )
-                    }
-                )
-                HorizontalDivider()
-            }
-            if (config.mode == AppMode.LIST || config.mode == AppMode.MIX) {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.settings_show_peek_bubble)) },
-                    supportingContent = { Text(stringResource(R.string.settings_show_peek_bubble_hint)) },
-                    trailingContent = {
-                        Switch(
-                            checked = config.showPeekBubble,
-                            onCheckedChange = onShowPeekBubbleChanged
-                        )
-                    }
-                )
-                HorizontalDivider()
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.settings_show_recent_apps)) },
-                    supportingContent = { Text(stringResource(R.string.settings_show_recent_apps_hint)) },
-                    trailingContent = {
-                        Switch(
-                            checked = config.showRecentApps,
-                            onCheckedChange = { turningOn ->
-                                when {
-                                    !turningOn -> onShowRecentAppsChanged(false)
-                                    RecentApps.hasUsageAccess(context) -> onShowRecentAppsChanged(true)
-                                    else -> showUsageAccessExplainer = true
-                                }
+                        }
+                    )
+                }
+            )
+            HorizontalDivider()
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_show_peek_bubble)) },
+                supportingContent = { Text(stringResource(R.string.settings_show_peek_bubble_hint)) },
+                trailingContent = {
+                    Switch(
+                        checked = config.showPeekBubble,
+                        onCheckedChange = { turningOn ->
+                            when {
+                                !turningOn -> onShowPeekBubbleChanged(false)
+                                AndroidSettings.canDrawOverlays(context) -> onShowPeekBubbleChanged(true)
+                                else -> showPeekOverlayExplainer = true
                             }
-                        )
-                    }
-                )
-                HorizontalDivider()
-            }
+                        }
+                    )
+                }
+            )
+            HorizontalDivider()
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_show_recent_apps)) },
+                supportingContent = { Text(stringResource(R.string.settings_show_recent_apps_hint)) },
+                trailingContent = {
+                    Switch(
+                        checked = config.showRecentApps,
+                        onCheckedChange = { turningOn ->
+                            when {
+                                !turningOn -> onShowRecentAppsChanged(false)
+                                RecentApps.hasUsageAccess(context) -> onShowRecentAppsChanged(true)
+                                else -> showUsageAccessExplainer = true
+                            }
+                        }
+                    )
+                }
+            )
+            HorizontalDivider()
             val pinDefaultItem = stringResource(R.string.settings_pin_default_item)
             ListItem(
                 headlineContent = {
@@ -385,6 +399,18 @@ fun SettingsScreen(
             dismissButton = {
                 TextButton(onClick = { showOverlayExplainer = false }) { Text(stringResource(R.string.settings_cancel)) }
             }
+        )
+    }
+
+    if (showPeekOverlayExplainer) {
+        PeekOverlayPermissionDialog(
+            onContinue = {
+                showPeekOverlayExplainer = false
+                peekOverlaySettingsLauncher.launch(
+                    Intent(AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
+                )
+            },
+            onDismiss = { showPeekOverlayExplainer = false }
         )
     }
 

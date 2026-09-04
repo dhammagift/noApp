@@ -1,5 +1,10 @@
 package com.noapp.container.ui
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings as AndroidSettings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -118,9 +123,42 @@ private fun AppMode.descriptionRes(): Int = when (this) {
 @Composable
 private fun ModePickerDialog(
     currentMode: AppMode,
+    showPeekBubble: Boolean,
     onModeSelected: (AppMode) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    var pendingMode by remember { mutableStateOf<AppMode?>(null) }
+    val overlaySettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        // Granted or not, the mode switch itself already went through below — this permission
+        // is advisory for the peek bubble, which already degrades gracefully without it.
+    }
+
+    fun selectMode(candidate: AppMode) {
+        if (candidate != currentMode &&
+            (candidate == AppMode.LIST || candidate == AppMode.MIX) &&
+            showPeekBubble &&
+            !AndroidSettings.canDrawOverlays(context)
+        ) {
+            pendingMode = candidate
+        }
+        onModeSelected(candidate)
+    }
+
+    if (pendingMode != null) {
+        PeekOverlayPermissionDialog(
+            onContinue = {
+                pendingMode = null
+                overlaySettingsLauncher.launch(
+                    Intent(AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
+                )
+            },
+            onDismiss = { pendingMode = null }
+        )
+    }
+
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.fillMaxSize()) {
@@ -139,7 +177,7 @@ private fun ModePickerDialog(
                     AppMode.entries.forEach { candidate ->
                         val selected = candidate == currentMode
                         Surface(
-                            onClick = { onModeSelected(candidate) },
+                            onClick = { selectMode(candidate) },
                             shape = MaterialTheme.shapes.medium,
                             color = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                             modifier = Modifier.fillMaxWidth()
@@ -171,6 +209,7 @@ private fun ModePickerDialog(
 fun ConfigScreen(
     mode: AppMode,
     slots: List<ShortcutSlot>,
+    showPeekBubble: Boolean,
     onEditSlot: (Int) -> Unit,
     onAddSlot: (SlotType) -> Unit,
     onOpenSettings: () -> Unit,
@@ -213,6 +252,7 @@ fun ConfigScreen(
                     if (modeDialogVisible) {
                         ModePickerDialog(
                             currentMode = mode,
+                            showPeekBubble = showPeekBubble,
                             onModeSelected = {
                                 onModeChanged(it)
                                 modeDialogVisible = false
