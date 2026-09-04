@@ -11,7 +11,7 @@
     <string name="settings_show_recent_apps">Недавние приложения в режимах List и Mix</string>
     <string name="settings_show_recent_apps_hint">Если вы хотите видеть недавние приложения отдельно в списке, то мне нужно будет разрешение usage access.</string>
     <string name="settings_usage_access_dialog_title">Доступ к использованию</string>
-    <string name="settings_usage_access_dialog_text">Чтобы показывать ряд недавно использованных приложений, Not App нужно разрешение \"Доступ к использованию\". Откроются системные настройки — найдите там Not App и включите его.</string>
+    <string name="settings_usage_access_dialog_text">Чтобы показывать ряд недавно использованных приложений, мне нужно разрешение \"Доступ к использованию\". Откроются системные настройки — найдите там Not App и включите его.</string>
     <string name="settings_pin_title">Закрепить \"%1$s\" на рабочем столе</string>
     <string name="settings_pin_default_item">первый ярлык</string>
     <string name="settings_pin_hint_enabled">Добавляет отдельную иконку рядом с Not App, которая сразу запускает этот ярлык</string>

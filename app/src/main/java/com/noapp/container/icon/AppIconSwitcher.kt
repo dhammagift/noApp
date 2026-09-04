@@ -42,27 +42,35 @@ val ICON_VARIANTS = listOf(
  * Settings access entirely in an earlier version). DONT_KILL_APP so switching doesn't restart the
  * process mid-Settings-screen. Some launchers take a moment (or a home-screen return) to pick up
  * the new icon — that's the OS, not us.
+ *
+ * Called from MainActivity.onCreate on every cold start, before anything else — this is the one
+ * unguarded-looking OS call on that path, so it's defensive the same way ShortcutSync.sync is:
+ * a PackageManager quirk here (some OEM launcher/PM combination this hasn't been tested against)
+ * must never take the whole launch down with it. Worst case the launcher icon doesn't switch
+ * variant/mode target until the next attempt — better than the app never opening at all.
  */
 fun applyLauncherComponent(context: Context, variantId: String, mode: AppMode) {
-    val pm = context.packageManager
-    val appPackage = context.packageName
-    val useListTarget = mode == AppMode.LIST
-    // A variant removed from the list (e.g. after an update) but still persisted from an older
-    // install would otherwise match nothing below, leaving every alias disabled — no launcher
-    // icon at all. Fall back to the first variant instead.
-    val resolvedVariantId = if (ICON_VARIANTS.any { it.id == variantId }) variantId else ICON_VARIANTS.first().id
-    for (variant in ICON_VARIANTS) {
-        val isChosen = variant.id == resolvedVariantId
-        pm.setComponentEnabledSetting(
-            ComponentName(appPackage, "$NAMESPACE${variant.mainComponentSuffix}"),
-            stateFor(isChosen && !useListTarget),
-            PackageManager.DONT_KILL_APP
-        )
-        pm.setComponentEnabledSetting(
-            ComponentName(appPackage, "$NAMESPACE${variant.listComponentSuffix}"),
-            stateFor(isChosen && useListTarget),
-            PackageManager.DONT_KILL_APP
-        )
+    runCatching {
+        val pm = context.packageManager
+        val appPackage = context.packageName
+        val useListTarget = mode == AppMode.LIST
+        // A variant removed from the list (e.g. after an update) but still persisted from an
+        // older install would otherwise match nothing below, leaving every alias disabled — no
+        // launcher icon at all. Fall back to the first variant instead.
+        val resolvedVariantId = if (ICON_VARIANTS.any { it.id == variantId }) variantId else ICON_VARIANTS.first().id
+        for (variant in ICON_VARIANTS) {
+            val isChosen = variant.id == resolvedVariantId
+            pm.setComponentEnabledSetting(
+                ComponentName(appPackage, "$NAMESPACE${variant.mainComponentSuffix}"),
+                stateFor(isChosen && !useListTarget),
+                PackageManager.DONT_KILL_APP
+            )
+            pm.setComponentEnabledSetting(
+                ComponentName(appPackage, "$NAMESPACE${variant.listComponentSuffix}"),
+                stateFor(isChosen && useListTarget),
+                PackageManager.DONT_KILL_APP
+            )
+        }
     }
 }
 

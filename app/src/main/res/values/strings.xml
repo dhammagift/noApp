@@ -14,7 +14,7 @@
     <string name="settings_show_recent_apps">Recent apps in List and Mix modes</string>
     <string name="settings_show_recent_apps_hint">If you want to see recently used apps separately in the list, I\'ll need Usage access permission.</string>
     <string name="settings_usage_access_dialog_title">Usage access</string>
-    <string name="settings_usage_access_dialog_text">To show a row of recently-used apps, Not App needs the \"Usage access\" permission. You\'ll be taken to system settings — find Not App in the list and turn it on.</string>
+    <string name="settings_usage_access_dialog_text">To show a row of recently-used apps, I\'ll need the \"Usage access\" permission. You\'ll be taken to system settings — find Not App in the list and turn it on.</string>
     <string name="settings_pin_title">Pin \"%1$s\" to home screen</string>
     <string name="settings_pin_default_item">your first item</string>
     <string name="settings_pin_hint_enabled">Adds a separate icon that launches it directly, next to Not App</string>
