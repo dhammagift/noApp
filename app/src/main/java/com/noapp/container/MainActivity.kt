@@ -188,10 +188,10 @@ class MainActivity : ComponentActivity() {
                             // and importing shouldn't be a way around that (a switch showing "on"
                             // with no real permission behind it is exactly the confusing state that
                             // flow prevents).
-                            useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)
+                            useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode && Settings.canDrawOverlays(this@MainActivity)
                             iconVariant = imported.iconVariant
-                            showPeekBubble = imported.showPeekBubble && Settings.canDrawOverlays(this)
-                            showRecentApps = imported.showRecentApps && RecentApps.hasUsageAccess(this)
+                            showPeekBubble = imported.showPeekBubble && Settings.canDrawOverlays(this@MainActivity)
+                            showRecentApps = imported.showRecentApps && RecentApps.hasUsageAccess(this@MainActivity)
                             if (persist()) showRestartHint()
                         }
                     )
