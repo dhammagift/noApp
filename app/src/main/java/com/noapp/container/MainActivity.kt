@@ -6,19 +6,12 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import com.noapp.container.data.ConfigStore
 import com.noapp.container.model.AppConfig
 import com.noapp.container.model.AppMode
@@ -35,7 +28,6 @@ import com.noapp.container.ui.CrashReportScreen
 import com.noapp.container.ui.SettingsScreen
 import com.noapp.container.ui.SlotEditScreen
 import com.noapp.container.ui.theme.NoAppTheme
-import kotlinx.coroutines.launch
 
 /**
  * No back stack, no navigation-compose: switched by a single sealed state. The
@@ -114,90 +106,91 @@ class MainActivity : ComponentActivity() {
                 var iconVariant by remember { mutableStateOf(initialConfig.iconVariant) }
                 var showPeekBubble by remember { mutableStateOf(initialConfig.showPeekBubble) }
                 var showRecentApps by remember { mutableStateOf(initialConfig.showRecentApps) }
-                val snackbarHostState = remember { SnackbarHostState() }
-                val scope = rememberCoroutineScope()
-                val restartHintMessage = stringResource(R.string.restart_hint_message)
-
-                fun showRestartHint() {
-                    scope.launch { snackbarHostState.showSnackbar(restartHintMessage) }
-                }
+                // Bumped whenever a change needs a close-and-reopen to fully apply (see
+                // wouldRiskTeardown). Whichever screen is on-screen when that happens shows the
+                // hint on its OWN Scaffold's SnackbarHost — already correctly positioned above its
+                // FAB and the system bars — rather than this Activity owning a second one of its
+                // own; an int (not a Boolean or the message string) so a second hint while the
+                // first is still showing is a distinct LaunchedEffect key and actually re-triggers.
+                var restartHintToken by remember { mutableIntStateOf(0) }
 
                 // Returns true if this change needs a close-and-reopen to fully apply (only the
                 // one narrow case documented on wouldRiskTeardown/applyLauncherComponent — every
                 // other mode/variant change below applies live, including the OS-facing icon).
-                fun persist(): Boolean {
+                fun persist(iconRisky: Boolean): Boolean {
                     val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps)
                     ConfigStore.save(this, config)
-                    val risky = com.noapp.container.icon.wouldRiskTeardown(this, iconVariant, mode)
                     // Applying live is safe for every case except the one wouldRiskTeardown flags:
                     // disabling ".IconDefault" while a live task's history references it can make
                     // Android tear that task down outright, DONT_KILL_APP or not (confirmed via
                     // DebugLog — see AppIconSwitcher's doc comments). Skip the live call there and
                     // let onCreate's own cold-start reconciliation pick it up next launch instead,
                     // hinting the user via a Snackbar rather than restarting for them.
-                    if (!risky) {
+                    if (!iconRisky) {
                         com.noapp.container.icon.applyLauncherComponent(this, iconVariant, mode)
                     }
                     ShortcutSync.sync(this, mode, slots.toList(), iconVariant, useAllSlotsInDirectMode)
-                    DebugLog.log(this, TAG, "persist: done mode=$mode variant=$iconVariant risky=$risky")
-                    return risky
+                    DebugLog.log(this, TAG, "persist: done mode=$mode variant=$iconVariant risky=$iconRisky")
+                    return iconRisky
                 }
 
-                Box(modifier = Modifier.fillMaxSize()) {
-                    NoAppRoot(
-                        mode = mode,
-                        slots = slots,
-                        useAllSlotsInDirectMode = useAllSlotsInDirectMode,
-                        iconVariant = iconVariant,
-                        showPeekBubble = showPeekBubble,
-                        showRecentApps = showRecentApps,
-                        screen = screen,
-                        onScreenChange = { screen = it },
-                        onSlotsChanged = { updated ->
-                            slots.clear()
-                            slots.addAll(updated)
-                            persist()
-                        },
-                        onModeChanged = { newMode ->
-                            mode = newMode
-                            if (persist()) showRestartHint()
-                        },
-                        onUseAllSlotsInDirectModeChanged = { value ->
-                            useAllSlotsInDirectMode = value
-                            persist()
-                        },
-                        onIconVariantChanged = { value ->
-                            iconVariant = value
-                            if (persist()) showRestartHint()
-                        },
-                        onShowPeekBubbleChanged = { value ->
-                            showPeekBubble = value
-                            persist()
-                        },
-                        onShowRecentAppsChanged = { value ->
-                            showRecentApps = value
-                            persist()
-                        },
-                        onConfigImported = { imported ->
-                            mode = imported.mode
-                            slots.clear()
-                            slots.addAll(imported.slots)
-                            // A backed-up config claiming one of these permission-gated features was
-                            // on doesn't mean the permission is actually granted on THIS device/
-                            // install — the normal toggle flow always checks before flipping to on,
-                            // and importing shouldn't be a way around that (a switch showing "on"
-                            // with no real permission behind it is exactly the confusing state that
-                            // flow prevents).
-                            useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode && Settings.canDrawOverlays(this@MainActivity)
-                            iconVariant = imported.iconVariant
-                            showPeekBubble = imported.showPeekBubble && Settings.canDrawOverlays(this@MainActivity)
-                            showRecentApps = imported.showRecentApps && RecentApps.hasUsageAccess(this@MainActivity)
-                            if (persist()) showRestartHint()
-                        }
-                    )
-
-                    SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
-                }
+                NoAppRoot(
+                    mode = mode,
+                    slots = slots,
+                    useAllSlotsInDirectMode = useAllSlotsInDirectMode,
+                    iconVariant = iconVariant,
+                    showPeekBubble = showPeekBubble,
+                    showRecentApps = showRecentApps,
+                    screen = screen,
+                    restartHintToken = restartHintToken,
+                    onScreenChange = { screen = it },
+                    onSlotsChanged = { updated ->
+                        slots.clear()
+                        slots.addAll(updated)
+                        persist(false)
+                    },
+                    onModeChanged = { newMode ->
+                        val risky = com.noapp.container.icon.wouldRiskTeardown(iconVariant, mode, iconVariant, newMode)
+                        mode = newMode
+                        persist(risky)
+                        if (risky) restartHintToken++
+                    },
+                    onUseAllSlotsInDirectModeChanged = { value ->
+                        useAllSlotsInDirectMode = value
+                        persist(false)
+                    },
+                    onIconVariantChanged = { value ->
+                        val risky = com.noapp.container.icon.wouldRiskTeardown(iconVariant, mode, value, mode)
+                        iconVariant = value
+                        persist(risky)
+                        if (risky) restartHintToken++
+                    },
+                    onShowPeekBubbleChanged = { value ->
+                        showPeekBubble = value
+                        persist(false)
+                    },
+                    onShowRecentAppsChanged = { value ->
+                        showRecentApps = value
+                        persist(false)
+                    },
+                    onConfigImported = { imported ->
+                        val risky = com.noapp.container.icon.wouldRiskTeardown(iconVariant, mode, imported.iconVariant, imported.mode)
+                        mode = imported.mode
+                        slots.clear()
+                        slots.addAll(imported.slots)
+                        // A backed-up config claiming one of these permission-gated features was on
+                        // doesn't mean the permission is actually granted on THIS device/install —
+                        // the normal toggle flow always checks before flipping to on, and importing
+                        // shouldn't be a way around that (a switch showing "on" with no real
+                        // permission behind it is exactly the confusing state that flow prevents).
+                        useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)
+                        iconVariant = imported.iconVariant
+                        showPeekBubble = imported.showPeekBubble && Settings.canDrawOverlays(this)
+                        showRecentApps = imported.showRecentApps && RecentApps.hasUsageAccess(this)
+                        persist(risky)
+                        if (risky) restartHintToken++
+                    }
+                )
             }
         }
     }
@@ -323,6 +316,7 @@ private fun NoAppRoot(
     showPeekBubble: Boolean,
     showRecentApps: Boolean,
     screen: Screen,
+    restartHintToken: Int,
     onScreenChange: (Screen) -> Unit,
     onSlotsChanged: (List<ShortcutSlot>) -> Unit,
     onModeChanged: (AppMode) -> Unit,
@@ -341,6 +335,7 @@ private fun NoAppRoot(
             mode = mode,
             slots = slots,
             showPeekBubble = showPeekBubble,
+            restartHintToken = restartHintToken,
             onEditSlot = { index -> onScreenChange(Screen.EditSlot(index)) },
             onAddSlot = { type -> onScreenChange(Screen.NewSlot(type)) },
             onOpenSettings = { onScreenChange(Screen.Settings) },
@@ -381,6 +376,7 @@ private fun NoAppRoot(
 
         is Screen.Settings -> SettingsScreen(
             config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps),
+            restartHintToken = restartHintToken,
             onImportConfig = onConfigImported,
             onUseAllSlotsInDirectModeChanged = onUseAllSlotsInDirectModeChanged,
             onIconVariantChanged = onIconVariantChanged,

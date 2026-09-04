@@ -33,12 +33,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -88,6 +91,7 @@ private fun IconVariant.displayName(): String = when (id) {
 @Composable
 fun SettingsScreen(
     config: AppConfig,
+    restartHintToken: Int,
     onImportConfig: (AppConfig) -> Unit,
     onUseAllSlotsInDirectModeChanged: (Boolean) -> Unit,
     onIconVariantChanged: (String) -> Unit,
@@ -96,6 +100,13 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val restartHintMessage = stringResource(R.string.restart_hint_message)
+
+    // See ConfigScreen's own copy of this for why a token, not the message or a Boolean.
+    LaunchedEffect(restartHintToken) {
+        if (restartHintToken > 0) snackbarHostState.showSnackbar(restartHintMessage)
+    }
 
     // Cheap insurance against the MIX/LIST peek bubble ever being stuck somewhere the user
     // can't reach (e.g. after a display change while it was showing): visiting Settings —
@@ -173,6 +184,7 @@ fun SettingsScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },

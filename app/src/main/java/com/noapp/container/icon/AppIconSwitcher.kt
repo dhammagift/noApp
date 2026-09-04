@@ -123,24 +123,27 @@ private fun setIfChanged(pm: PackageManager, component: ComponentName, want: Boo
 }
 
 /**
- * True iff calling [applyLauncherComponent] with [variantId]/[mode] right now would hit the one
- * risky transition documented on it: explicitly disabling ".IconDefault" (the "default" variant's
- * main-target alias, the only one whose manifest default is enabled=true). Reads the live
- * PackageManager state directly rather than trusting a caller-supplied "previous" variant/mode,
- * so it stays correct even if that's drifted from what's actually enabled on this device.
+ * True iff switching from [oldVariantId]/[oldMode] to [newVariantId]/[newMode] would hit the one
+ * risky transition documented on [applyLauncherComponent]: explicitly disabling ".IconDefault"
+ * (the "default" variant's main-target alias, the only one whose manifest default is
+ * enabled=true). Deliberately a pure function of the two (variant, mode) pairs MainActivity
+ * already holds in memory, NOT a live PackageManager read: an earlier version re-queried
+ * getComponentEnabledSetting() here and that was inconsistent in practice — Android doesn't
+ * guarantee a getComponentEnabledSetting() call sees a setComponentEnabledSetting() write from
+ * moments earlier in the same process, which showed up as the restart hint appearing for some
+ * icon-variant taps but not others with no discernible pattern. Recomputing from the two
+ * (variant, mode) pairs the caller already has is both correct and immune to that.
  *
  * Callers use this to decide whether to apply a change live (safe: every other case) or defer it
  * to the next cold start and let the user know via a hint instead (this one case) — see
  * MainActivity's persist().
  */
-fun wouldRiskTeardown(context: Context, variantId: String, mode: AppMode): Boolean {
-    val pm = context.packageManager
-    val defaultMain = ComponentName(context.packageName, "$NAMESPACE.IconDefault")
-    val currentlyEnabled = pm.getComponentEnabledSetting(defaultMain) != PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-    if (!currentlyEnabled) return false
-    val resolvedVariantId = if (ICON_VARIANTS.any { it.id == variantId }) variantId else ICON_VARIANTS.first().id
-    val wantEnabled = resolvedVariantId == "default" && mode != AppMode.LIST
-    return !wantEnabled
+fun wouldRiskTeardown(oldVariantId: String, oldMode: AppMode, newVariantId: String, newMode: AppMode): Boolean {
+    fun isDefaultMainActive(variantId: String, mode: AppMode): Boolean {
+        val resolvedVariantId = if (ICON_VARIANTS.any { it.id == variantId }) variantId else ICON_VARIANTS.first().id
+        return resolvedVariantId == "default" && mode != AppMode.LIST
+    }
+    return isDefaultMainActive(oldVariantId, oldMode) && !isDefaultMainActive(newVariantId, newMode)
 }
 
 /**

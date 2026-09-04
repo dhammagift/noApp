@@ -61,6 +61,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -210,6 +211,7 @@ fun ConfigScreen(
     mode: AppMode,
     slots: List<ShortcutSlot>,
     showPeekBubble: Boolean,
+    restartHintToken: Int,
     onEditSlot: (Int) -> Unit,
     onAddSlot: (SlotType) -> Unit,
     onOpenSettings: () -> Unit,
@@ -223,6 +225,15 @@ fun ConfigScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val undoLabel = stringResource(R.string.common_undo)
+    val restartHintMessage = stringResource(R.string.restart_hint_message)
+
+    // Reuses this screen's own Scaffold-hosted SnackbarHost (already correctly positioned above
+    // the FAB and system bars, same as the Undo snackbar below) rather than a separate host of
+    // its own — token, not the message text or a Boolean, as the LaunchedEffect key so a second
+    // hint while an earlier one is still showing is a distinct key and actually re-triggers.
+    LaunchedEffect(restartHintToken) {
+        if (restartHintToken > 0) snackbarHostState.showSnackbar(restartHintMessage)
+    }
 
     fun removeWithUndo(previous: List<ShortcutSlot>, updated: List<ShortcutSlot>, message: String) {
         // previous is a live SnapshotStateList reference (see slots: List<ShortcutSlot> above) —
