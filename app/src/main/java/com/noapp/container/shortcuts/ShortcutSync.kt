@@ -30,10 +30,12 @@ private const val CONFIGURE_SHORTCUT_ID = "configure"
  * opts out of that (Settings toggle): then the whole budget goes to real items,
  * and getting back to Settings relies on the brief gear shown on each dispatch
  * (see [GearOverlayService]) instead of a long-press entry.
- * AppMode.LIST and AppMode.MIX: a plain tap always shows the full list (which
- * has its own "Configure" row — MIX shows it on top of slot 0's dispatch), so
- * no reserved entry is needed — the whole budget goes to real shortcuts, taken
- * in the user's configured order.
+ * AppMode.LIST: a plain tap always shows the full list (which has its own
+ * "Configure" row), so no reserved entry is needed — the whole budget goes to
+ * real shortcuts, taken in the user's configured order.
+ * AppMode.MIX: same as LIST, except slot 0 is excluded — a plain tap already
+ * launches it directly (see MainActivity.dispatchIfShortcut), so a long-press
+ * shortcut for it too would just duplicate something that happens on tap anyway.
  */
 object ShortcutSync {
     // Shortcuts are a nice-to-have, never something allowed to take core app dispatch down
@@ -58,8 +60,11 @@ object ShortcutSync {
                         addAll(auxSlots.take((budget - size).coerceAtLeast(0)).map { shortcutFor(context, it, component) })
                     }
                 }
-                AppMode.LIST, AppMode.MIX -> {
+                AppMode.LIST -> {
                     slots.filter { it.isConfigured }.take(budget).map { shortcutFor(context, it, component) }
+                }
+                AppMode.MIX -> {
+                    slots.filter { it.id != 0 && it.isConfigured }.take(budget).map { shortcutFor(context, it, component) }
                 }
             }
             // Full replace each time: always under budget by construction, no drift bookkeeping needed.

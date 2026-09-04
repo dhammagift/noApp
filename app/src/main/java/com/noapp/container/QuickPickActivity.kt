@@ -104,9 +104,9 @@ class QuickPickActivity : ComponentActivity() {
         stopService(Intent(this, QuickPickPeekOverlayService::class.java))
         val newSharedText = intent.getStringExtra(EXTRA_SHARED_TEXT)
         val config = ConfigStore.load(this)
-        val newSlots = config.slots.filter { it.isConfigured }
+        val configuredSlots = config.slots.filter { it.isConfigured }
 
-        if (newSlots.isEmpty() && newSharedText == null) {
+        if (configuredSlots.isEmpty() && newSharedText == null) {
             DebugLog.log(this, TAG, "no configured slots, redirecting to Configure")
             startActivity(Intent(this, MainActivity::class.java).putExtra(EXTRA_OPEN_CONFIG, true))
             finish()
@@ -114,7 +114,15 @@ class QuickPickActivity : ComponentActivity() {
         }
 
         sharedText = newSharedText
-        slots = newSlots
+        // MIX already launches slot 0 directly on a plain tap (see MainActivity.dispatchIfShortcut)
+        // — showing it again here would be a visible duplicate of something that just happened.
+        // Only for a real tap dispatch, not a share-target pick, where slot 0 is still a valid
+        // destination to send the shared text to.
+        slots = if (config.mode == AppMode.MIX && newSharedText == null) {
+            configuredSlots.filter { it.id != 0 }
+        } else {
+            configuredSlots
+        }
         // LIST and MIX both get the collapse-to-peek affordance, unless the user turned it
         // off in Settings; the share-target sheet keeps the plain dismiss-and-finish
         // regardless (there's no "list" to return to).

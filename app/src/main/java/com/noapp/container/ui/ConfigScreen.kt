@@ -250,7 +250,19 @@ fun ConfigScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        // Material3's default Snackbar deliberately inverts the theme (light-on-dark even in a
+        // dark theme) for contrast — jarring against this app's otherwise all-dark surfaces, so
+        // this keeps it in the same palette as everything else instead.
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    actionColor = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
