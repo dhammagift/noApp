@@ -6,11 +6,19 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import com.noapp.container.data.ConfigStore
 import com.noapp.container.model.AppConfig
 import com.noapp.container.model.AppMode
@@ -24,10 +32,10 @@ import com.noapp.container.shortcuts.GearOverlayService
 import com.noapp.container.shortcuts.ShortcutSync
 import com.noapp.container.ui.ConfigScreen
 import com.noapp.container.ui.CrashReportScreen
-import com.noapp.container.ui.RestartNeededDialog
 import com.noapp.container.ui.SettingsScreen
 import com.noapp.container.ui.SlotEditScreen
 import com.noapp.container.ui.theme.NoAppTheme
+import kotlinx.coroutines.launch
 
 /**
  * No back stack, no navigation-compose: switched by a single sealed state. The
@@ -59,13 +67,13 @@ class MainActivity : ComponentActivity() {
 
         val initialConfig = ConfigStore.load(this)
         // Reconciles the enabled launcher-alias pair with the persisted (variant, mode) — covers
-        // a mode/variant change made last session (persist() no longer touches this live, see
-        // there), an app update that added the "*List" aliases after this config was last saved,
-        // or any other drift; a no-op the rest of the time.
+        // the one change persist() itself deferred rather than applying live (see its own comment
+        // and wouldRiskTeardown), an app update that added the "*List" aliases after this config
+        // was last saved, or any other drift; a no-op the rest of the time.
         DebugLog.log(this, TAG, "applyLauncherComponent variant=${initialConfig.iconVariant} mode=${initialConfig.mode}")
-        val aliasChanged = com.noapp.container.icon.applyLauncherComponent(this, initialConfig.iconVariant, initialConfig.mode)
-        DebugLog.log(this, TAG, "applyLauncherComponent done changed=$aliasChanged")
-        if (aliasChanged) {
+        val aliasRisky = com.noapp.container.icon.applyLauncherComponent(this, initialConfig.iconVariant, initialConfig.mode)
+        DebugLog.log(this, TAG, "applyLauncherComponent done risky=$aliasRisky")
+        if (aliasRisky) {
             // The alias this task was actually entered through may be exactly the one just
             // disabled above — restart into a fresh task before showing anything, rather than
             // risk the OS tearing this one down a moment later (see applyLauncherComponent's own
@@ -106,101 +114,89 @@ class MainActivity : ComponentActivity() {
                 var iconVariant by remember { mutableStateOf(initialConfig.iconVariant) }
                 var showPeekBubble by remember { mutableStateOf(initialConfig.showPeekBubble) }
                 var showRecentApps by remember { mutableStateOf(initialConfig.showRecentApps) }
-                var showRestartDialog by remember { mutableStateOf(false) }
+                val snackbarHostState = remember { SnackbarHostState() }
+                val scope = rememberCoroutineScope()
+                val restartHintMessage = stringResource(R.string.restart_hint_message)
 
-                fun restartNow() {
-                    startActivity(
-                        Intent(this, MainActivity::class.java)
-                            .putExtra(EXTRA_OPEN_CONFIG, true)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                    )
-                    finish()
+                fun showRestartHint() {
+                    scope.launch { snackbarHostState.showSnackbar(restartHintMessage) }
                 }
 
-                fun persist() {
+                // Returns true if this change needs a close-and-reopen to fully apply (only the
+                // one narrow case documented on wouldRiskTeardown/applyLauncherComponent — every
+                // other mode/variant change below applies live, including the OS-facing icon).
+                fun persist(): Boolean {
                     val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps)
                     ConfigStore.save(this, config)
-                    // Deliberately NOT calling applyLauncherComponent here anymore. Confirmed on a
-                    // real device (see DebugLog): disabling the alias a live task's history
-                    // includes — even reached via an explicit Intent, not that alias directly —
-                    // makes Android tear the whole task down outright, DONT_KILL_APP or not (that
-                    // only protects the process, not a task tied to a component that just went
-                    // away). That's not something to work around with our own forced restart —
-                    // the app should just keep running for as long as the user wants it open.
-                    // onCreate's own call already re-syncs the alias to match on the next cold
-                    // start; ShortcutSync.sync below still runs immediately so the long-press
-                    // items reflect the change right away even if the alias itself lags one
-                    // relaunch behind — a cosmetic gap, not a functional one.
+                    val risky = com.noapp.container.icon.wouldRiskTeardown(this, iconVariant, mode)
+                    // Applying live is safe for every case except the one wouldRiskTeardown flags:
+                    // disabling ".IconDefault" while a live task's history references it can make
+                    // Android tear that task down outright, DONT_KILL_APP or not (confirmed via
+                    // DebugLog — see AppIconSwitcher's doc comments). Skip the live call there and
+                    // let onCreate's own cold-start reconciliation pick it up next launch instead,
+                    // hinting the user via a Snackbar rather than restarting for them.
+                    if (!risky) {
+                        com.noapp.container.icon.applyLauncherComponent(this, iconVariant, mode)
+                    }
                     ShortcutSync.sync(this, mode, slots.toList(), iconVariant, useAllSlotsInDirectMode)
-                    DebugLog.log(this, TAG, "persist: done mode=$mode variant=$iconVariant")
+                    DebugLog.log(this, TAG, "persist: done mode=$mode variant=$iconVariant risky=$risky")
+                    return risky
                 }
 
-                NoAppRoot(
-                    mode = mode,
-                    slots = slots,
-                    useAllSlotsInDirectMode = useAllSlotsInDirectMode,
-                    iconVariant = iconVariant,
-                    showPeekBubble = showPeekBubble,
-                    showRecentApps = showRecentApps,
-                    screen = screen,
-                    onScreenChange = { screen = it },
-                    onSlotsChanged = { updated ->
-                        slots.clear()
-                        slots.addAll(updated)
-                        persist()
-                    },
-                    onModeChanged = { newMode ->
-                        val needsRestart = com.noapp.container.icon.enabledLauncherComponent(this, iconVariant, mode) !=
-                            com.noapp.container.icon.enabledLauncherComponent(this, iconVariant, newMode)
-                        DebugLog.log(this, TAG, "mode change $mode -> $newMode needsRestart=$needsRestart")
-                        mode = newMode
-                        persist()
-                        if (needsRestart) showRestartDialog = true
-                    },
-                    onUseAllSlotsInDirectModeChanged = { value ->
-                        useAllSlotsInDirectMode = value
-                        persist()
-                    },
-                    onIconVariantChanged = { value ->
-                        val needsRestart = com.noapp.container.icon.enabledLauncherComponent(this, iconVariant, mode) !=
-                            com.noapp.container.icon.enabledLauncherComponent(this, value, mode)
-                        iconVariant = value
-                        persist()
-                        if (needsRestart) showRestartDialog = true
-                    },
-                    onShowPeekBubbleChanged = { value ->
-                        showPeekBubble = value
-                        persist()
-                    },
-                    onShowRecentAppsChanged = { value ->
-                        showRecentApps = value
-                        persist()
-                    },
-                    onConfigImported = { imported ->
-                        val needsRestart = com.noapp.container.icon.enabledLauncherComponent(this, iconVariant, mode) !=
-                            com.noapp.container.icon.enabledLauncherComponent(this, imported.iconVariant, imported.mode)
-                        mode = imported.mode
-                        slots.clear()
-                        slots.addAll(imported.slots)
-                        // A backed-up config claiming one of these permission-gated features was on
-                        // doesn't mean the permission is actually granted on THIS device/install —
-                        // the normal toggle flow always checks before flipping to on, and importing
-                        // shouldn't be a way around that (a switch showing "on" with no real
-                        // permission behind it is exactly the confusing state that flow prevents).
-                        useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)
-                        iconVariant = imported.iconVariant
-                        showPeekBubble = imported.showPeekBubble && Settings.canDrawOverlays(this)
-                        showRecentApps = imported.showRecentApps && RecentApps.hasUsageAccess(this)
-                        persist()
-                        if (needsRestart) showRestartDialog = true
-                    }
-                )
-
-                if (showRestartDialog) {
-                    RestartNeededDialog(
-                        onRestart = { showRestartDialog = false; restartNow() },
-                        onDismiss = { showRestartDialog = false }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    NoAppRoot(
+                        mode = mode,
+                        slots = slots,
+                        useAllSlotsInDirectMode = useAllSlotsInDirectMode,
+                        iconVariant = iconVariant,
+                        showPeekBubble = showPeekBubble,
+                        showRecentApps = showRecentApps,
+                        screen = screen,
+                        onScreenChange = { screen = it },
+                        onSlotsChanged = { updated ->
+                            slots.clear()
+                            slots.addAll(updated)
+                            persist()
+                        },
+                        onModeChanged = { newMode ->
+                            mode = newMode
+                            if (persist()) showRestartHint()
+                        },
+                        onUseAllSlotsInDirectModeChanged = { value ->
+                            useAllSlotsInDirectMode = value
+                            persist()
+                        },
+                        onIconVariantChanged = { value ->
+                            iconVariant = value
+                            if (persist()) showRestartHint()
+                        },
+                        onShowPeekBubbleChanged = { value ->
+                            showPeekBubble = value
+                            persist()
+                        },
+                        onShowRecentAppsChanged = { value ->
+                            showRecentApps = value
+                            persist()
+                        },
+                        onConfigImported = { imported ->
+                            mode = imported.mode
+                            slots.clear()
+                            slots.addAll(imported.slots)
+                            // A backed-up config claiming one of these permission-gated features was
+                            // on doesn't mean the permission is actually granted on THIS device/
+                            // install — the normal toggle flow always checks before flipping to on,
+                            // and importing shouldn't be a way around that (a switch showing "on"
+                            // with no real permission behind it is exactly the confusing state that
+                            // flow prevents).
+                            useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)
+                            iconVariant = imported.iconVariant
+                            showPeekBubble = imported.showPeekBubble && Settings.canDrawOverlays(this)
+                            showRecentApps = imported.showRecentApps && RecentApps.hasUsageAccess(this)
+                            if (persist()) showRestartHint()
+                        }
                     )
+
+                    SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
                 }
             }
         }
