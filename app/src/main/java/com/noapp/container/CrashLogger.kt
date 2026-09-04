@@ -19,8 +19,10 @@ object CrashLogger {
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             runCatching {
-                DebugLog.log(appContext, "CRASH", Log.getStackTraceString(throwable))
-                prefs(appContext).edit().putBoolean(KEY_PENDING_CRASH, true).apply()
+                // Synchronous on purpose: the process dies right after this returns, and a
+                // write queued on DebugLog's background thread would die with it.
+                DebugLog.logNow(appContext, "CRASH", Log.getStackTraceString(throwable))
+                prefs(appContext).edit().putBoolean(KEY_PENDING_CRASH, true).commit()
             }
             previousHandler?.uncaughtException(thread, throwable)
         }

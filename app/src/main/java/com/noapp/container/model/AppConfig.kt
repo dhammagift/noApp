@@ -15,6 +15,9 @@ package com.noapp.container.model
  */
 enum class AppMode { LIST, DIRECT, MIX }
 
+/** Settings > Theme. SYSTEM follows the OS dark-mode setting; the other two force it. */
+enum class AppTheme { SYSTEM, LIGHT, DARK }
+
 data class AppConfig(
     val mode: AppMode = AppMode.LIST,
     val slots: List<ShortcutSlot> = ShortcutSlot.emptySlots(),
@@ -35,5 +38,6 @@ data class AppConfig(
     // LIST/MIX only, off by default (needs the user to separately grant Usage Access):
     // shows a compact icon-only row of recently-used apps above the configured items —
     // see recents/RecentApps.kt.
-    val showRecentApps: Boolean = false
+    val showRecentApps: Boolean = false,
+    val theme: AppTheme = AppTheme.SYSTEM
 )

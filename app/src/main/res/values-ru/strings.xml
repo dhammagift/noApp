@@ -2,6 +2,10 @@
     <string name="settings_title">Настройки</string>
     <string name="settings_app_icon">Иконка приложения</string>
     <string name="settings_app_icon_hint">Некоторым лаунчерам нужно время (или возврат на главный экран), чтобы показать новую иконку.</string>
+    <string name="settings_theme">Тема</string>
+    <string name="settings_theme_system">Системная</string>
+    <string name="settings_theme_light">Светлая</string>
+    <string name="settings_theme_dark">Тёмная</string>
     <string name="settings_language">Язык</string>
     <string name="settings_use_all_slots">Использовать все слоты шорткатов в режиме Direct</string>
     <string name="settings_use_all_slots_on">Покажу все 4 ярлыка при долгом нажатии, без «Настроек» — вместо них при открытии я покажу вверху экрана шестерёнку ⚙ на несколько секунд.</string>
@@ -37,6 +41,7 @@
     <string name="restart_hint_message_list">Готово! Мой следующий запуск будет в режиме «Список».</string>
     <string name="restart_hint_message_direct">Готово! Мой следующий запуск будет в режиме «Прямой».</string>
     <string name="restart_hint_message_mix">Готово! Мой следующий запуск будет в режиме «Микс».</string>
+    <string name="icon_hint_message">Готово — переключусь на новую иконку, когда вы в следующий раз откроете меня.</string>
     <string name="settings_back">Назад</string>
     <string name="toast_exported">Экспортировано</string>
     <string name="toast_export_failed">Ошибка экспорта: %1$s</string>

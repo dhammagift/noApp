@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -33,6 +34,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -51,20 +55,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.ShortcutManagerCompat
-import androidx.compose.foundation.Image
 import com.noapp.container.DebugLog
 import com.noapp.container.R
 import com.noapp.container.data.ConfigStore
+import com.noapp.container.icon.DownsampledImage
 import com.noapp.container.icon.ICON_VARIANTS
 import com.noapp.container.icon.IconVariant
 import com.noapp.container.icon.enabledLauncherComponent
 import com.noapp.container.model.AppConfig
+import com.noapp.container.model.AppTheme
 import com.noapp.container.recents.RecentApps
 import com.noapp.container.shortcuts.QuickPickPeekOverlayService
 import com.noapp.container.shortcuts.ShortcutSync
@@ -92,25 +96,24 @@ private fun IconVariant.displayName(): String = when (id) {
 @Composable
 fun SettingsScreen(
     config: AppConfig,
-    restartHintToken: Int,
+    hint: UiHint?,
+    onHintShown: (UiHint) -> Unit,
     onImportConfig: (AppConfig) -> Unit,
     onUseAllSlotsInDirectModeChanged: (Boolean) -> Unit,
     onIconVariantChanged: (String) -> Unit,
     onShowPeekBubbleChanged: (Boolean) -> Unit,
     onShowRecentAppsChanged: (Boolean) -> Unit,
+    onThemeChanged: (AppTheme) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
-    val restartHintText = restartHintMessage(config.mode)
 
-    // See ConfigScreen's own copy of this for why a token, not the message or a Boolean.
-    LaunchedEffect(restartHintToken) {
-        DebugLog.log(context, "SettingsScreen", "restart hint effect fired token=$restartHintToken")
-        if (restartHintToken > 0) {
-            DebugLog.log(context, "SettingsScreen", "showing restart hint snackbar text=\"$restartHintText\"")
-            snackbarHostState.showSnackbar(restartHintText)
-        }
+    // See ConfigScreen's own copy of this, and UiHint, for the consume-before-show contract.
+    LaunchedEffect(hint?.id) {
+        val pending = hint ?: return@LaunchedEffect
+        onHintShown(pending)
+        snackbarHostState.showSnackbar(pending.text)
     }
 
     // Cheap insurance against the MIX/LIST peek bubble ever being stuck somewhere the user
@@ -225,10 +228,10 @@ fun SettingsScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.clickable { onIconVariantChanged(variant.id) }
                     ) {
-                        Image(
-                            painter = painterResource(variant.previewRes),
+                        DownsampledImage(
+                            resId = variant.previewRes,
+                            size = 56.dp,
                             contentDescription = variant.displayName(),
-                            contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(56.dp)
                                 .clip(RoundedCornerShape(16.dp))
@@ -248,6 +251,27 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
+            HorizontalDivider()
+            ListItem(headlineContent = { Text(stringResource(R.string.settings_theme)) })
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) {
+                AppTheme.entries.forEachIndexed { index, candidate ->
+                    SegmentedButton(
+                        selected = config.theme == candidate,
+                        onClick = { onThemeChanged(candidate) },
+                        shape = SegmentedButtonDefaults.itemShape(index, AppTheme.entries.size)
+                    ) {
+                        Text(
+                            stringResource(
+                                when (candidate) {
+                                    AppTheme.SYSTEM -> R.string.settings_theme_system
+                                    AppTheme.LIGHT -> R.string.settings_theme_light
+                                    AppTheme.DARK -> R.string.settings_theme_dark
+                                }
+                            )
+                        )
+                    }
+                }
+            }
             HorizontalDivider()
             // Android's per-app language override only exists as of API 33 (Tiramisu) — no
             // custom in-app locale switcher below that, the app just follows the system language.
@@ -345,7 +369,7 @@ fun SettingsScreen(
                 modifier = Modifier.clickable(enabled = firstSlot != null) {
                     val slot = firstSlot ?: return@clickable
                     if (ShortcutManagerCompat.isRequestPinShortcutSupported(context)) {
-                        val component = enabledLauncherComponent(context, config.iconVariant, config.mode)
+                        val component = enabledLauncherComponent(context)
                         ShortcutManagerCompat.requestPinShortcut(context, ShortcutSync.shortcutFor(context, slot, component), null)
                     } else {
                         Toast.makeText(context, context.getString(R.string.toast_pin_unsupported), Toast.LENGTH_SHORT).show()

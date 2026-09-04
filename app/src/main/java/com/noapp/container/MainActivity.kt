@@ -6,15 +6,20 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import com.noapp.container.data.ConfigStore
+import com.noapp.container.icon.applyLauncherComponent
 import com.noapp.container.model.AppConfig
 import com.noapp.container.model.AppMode
+import com.noapp.container.model.AppTheme
 import com.noapp.container.model.ShortcutSlot
 import com.noapp.container.model.SlotType
 import com.noapp.container.recents.RecentApps
@@ -27,6 +32,7 @@ import com.noapp.container.ui.ConfigScreen
 import com.noapp.container.ui.CrashReportScreen
 import com.noapp.container.ui.SettingsScreen
 import com.noapp.container.ui.SlotEditScreen
+import com.noapp.container.ui.UiHint
 import com.noapp.container.ui.theme.NoAppTheme
 
 /**
@@ -44,46 +50,28 @@ class MainActivity : ComponentActivity() {
     // Hoisted out of setContent (rather than a plain `remember`) so onNewIntent can navigate
     // back to Config below without needing a reference into the running composition.
     private var screen: Screen by mutableStateOf(Screen.Config)
+    private var hintSeq = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         DebugLog.log(this, TAG, "onCreate hash=${System.identityHashCode(this)} action=${intent.action} extras=${intent.extras?.keySet()}")
 
+        val initialConfig = ConfigStore.load(this)
         if (CrashLogger.consumePendingCrash(this)) {
             // Show the log instead of the normal screen on the very next launch after a real
             // crash, so it can be copied/shared straight off the phone — see CrashLogger.
             // recreate() runs the rest of onCreate fresh once dismissed, same as any cold start.
-            setContent { NoAppTheme { CrashReportScreen(DebugLog.read(this), onDismiss = { recreate() }) } }
+            setContent {
+                NoAppTheme(initialConfig.theme) {
+                    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                        CrashReportScreen(DebugLog.read(this), onDismiss = { recreate() })
+                    }
+                }
+            }
             return
         }
 
-        val initialConfig = ConfigStore.load(this)
-        // Reconciles the enabled launcher-alias pair with the persisted (variant, mode) — covers
-        // the one change persist() itself deferred rather than applying live (see its own comment
-        // and wouldRiskTeardown), an app update that added the "*List" aliases after this config
-        // was last saved, or any other drift; a no-op the rest of the time.
-        DebugLog.log(this, TAG, "applyLauncherComponent variant=${initialConfig.iconVariant} mode=${initialConfig.mode}")
-        val aliasRisky = com.noapp.container.icon.applyLauncherComponent(this, initialConfig.iconVariant, initialConfig.mode)
-        DebugLog.log(this, TAG, "applyLauncherComponent done risky=$aliasRisky")
-        if (aliasRisky) {
-            // The alias this task was actually entered through may be exactly the one just
-            // disabled above — restart into a fresh task before showing anything, rather than
-            // risk the OS tearing this one down a moment later (see applyLauncherComponent's own
-            // doc comment). Keeps the original intent's action/extras so a real shortcut/share
-            // tap still gets dispatched correctly on the next pass (a guaranteed no-op here) —
-            // but forces the component to MainActivity's own class rather than copying intent's
-            // as-is: when launched through an activity-alias, Intent.getComponent() names that
-            // ALIAS, not the real target, and that's exactly the component just disabled above —
-            // an explicit Intent to a disabled component throws ActivityNotFoundException.
-            DebugLog.log(this, TAG, "launcher alias changed on cold start, restarting into a clean task")
-            startActivity(
-                Intent(intent)
-                    .setClass(this, MainActivity::class.java)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            )
-            finish()
-            return
-        }
+        if (reconcileLauncherIconOrRestart(intent, initialConfig)) return
         if (dispatchIfShortcut(intent, initialConfig)) {
             DebugLog.log(this, TAG, "dispatchIfShortcut handled it, finishing")
             return
@@ -92,110 +80,107 @@ class MainActivity : ComponentActivity() {
         // Self-heals installs whose shortcuts were published before ShortcutSync started
         // pinning them to the enabled alias explicitly (see its own doc comment) — those
         // never show up in the long-press menu at all until re-synced, and nothing else in
-        // this app calls sync() except an actual edit. Only reached once dispatchIfShortcut
-        // has already decided this isn't a fast dispatch, so it never adds work (or risk) to
-        // that hot path.
-        ShortcutSync.sync(this, initialConfig.mode, initialConfig.slots, initialConfig.iconVariant, initialConfig.useAllSlotsInDirectMode)
+        // this app calls sync() except an actual edit. Runs on ShortcutSync's own thread, so
+        // it costs the launch nothing.
+        ShortcutSync.sync(this, initialConfig.mode, initialConfig.slots, initialConfig.useAllSlotsInDirectMode)
         DebugLog.log(this, TAG, "showing Config screen")
 
         setContent {
-            NoAppTheme {
-                var mode by remember { mutableStateOf(initialConfig.mode) }
-                val slots = remember { mutableStateListOf(*initialConfig.slots.toTypedArray()) }
-                var useAllSlotsInDirectMode by remember { mutableStateOf(initialConfig.useAllSlotsInDirectMode) }
-                var iconVariant by remember { mutableStateOf(initialConfig.iconVariant) }
-                var showPeekBubble by remember { mutableStateOf(initialConfig.showPeekBubble) }
-                var showRecentApps by remember { mutableStateOf(initialConfig.showRecentApps) }
-                // Bumped whenever a change needs a close-and-reopen to fully apply (see
-                // wouldRiskTeardown). Whichever screen is on-screen when that happens shows the
-                // hint on its OWN Scaffold's SnackbarHost — already correctly positioned above its
-                // FAB and the system bars — rather than this Activity owning a second one of its
-                // own; an int (not a Boolean or the message string) so a second hint while the
-                // first is still showing is a distinct LaunchedEffect key and actually re-triggers.
-                var restartHintToken by remember { mutableIntStateOf(0) }
+            var mode by remember { mutableStateOf(initialConfig.mode) }
+            val slots = remember { mutableStateListOf(*initialConfig.slots.toTypedArray()) }
+            var useAllSlotsInDirectMode by remember { mutableStateOf(initialConfig.useAllSlotsInDirectMode) }
+            var iconVariant by remember { mutableStateOf(initialConfig.iconVariant) }
+            var showPeekBubble by remember { mutableStateOf(initialConfig.showPeekBubble) }
+            var showRecentApps by remember { mutableStateOf(initialConfig.showRecentApps) }
+            var theme by remember { mutableStateOf(initialConfig.theme) }
+            // The one pending Snackbar message, if any — shown by whichever screen is up on its
+            // own Scaffold's SnackbarHost (already positioned above its FAB and the system bars),
+            // and cleared through onHintShown the moment that screen picks it up. See UiHint.
+            var hint by remember { mutableStateOf<UiHint?>(null) }
 
-                // Returns true if this change needs a close-and-reopen to fully apply (only the
-                // one narrow case documented on wouldRiskTeardown/applyLauncherComponent — every
-                // other mode/variant change below applies live, including the OS-facing icon).
-                fun persist(iconRisky: Boolean): Boolean {
-                    val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps)
-                    ConfigStore.save(this, config)
-                    // Applying live is safe for every case except the one wouldRiskTeardown flags:
-                    // disabling ".IconDefault" while a live task's history references it can make
-                    // Android tear that task down outright, DONT_KILL_APP or not (confirmed via
-                    // DebugLog — see AppIconSwitcher's doc comments). Skip the live call there and
-                    // let onCreate's own cold-start reconciliation pick it up next launch instead,
-                    // hinting the user via a Snackbar rather than restarting for them.
-                    if (!iconRisky) {
-                        com.noapp.container.icon.applyLauncherComponent(this, iconVariant, mode)
-                    }
-                    ShortcutSync.sync(this, mode, slots.toList(), iconVariant, useAllSlotsInDirectMode)
-                    DebugLog.log(this, TAG, "persist: done mode=$mode variant=$iconVariant risky=$iconRisky")
-                    return iconRisky
+            fun showHint(text: String) {
+                hint = UiHint(++hintSeq, text)
+            }
+
+            // Everything here takes effect immediately and completely: the mode, the toggles and
+            // the slots are all just config that the next launcher tap reads back. The one thing
+            // deliberately NOT done here is touching the launcher alias for an icon change — see
+            // reconcileLauncherIconOrRestart for why that can only ever happen on a fresh launch.
+            fun persist() {
+                val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps, theme)
+                ConfigStore.save(this, config)
+                ShortcutSync.sync(this, mode, slots.toList(), useAllSlotsInDirectMode)
+                DebugLog.log(this, TAG, "persist: done mode=$mode variant=$iconVariant")
+            }
+
+            NoAppTheme(theme) {
+                // The window itself is translucent (see Theme.NoApp.Main in themes.xml) — this is
+                // what makes these screens opaque.
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    NoAppRoot(
+                        mode = mode,
+                        slots = slots,
+                        useAllSlotsInDirectMode = useAllSlotsInDirectMode,
+                        iconVariant = iconVariant,
+                        showPeekBubble = showPeekBubble,
+                        showRecentApps = showRecentApps,
+                        theme = theme,
+                        screen = screen,
+                        hint = hint,
+                        onHintShown = { shown -> if (hint?.id == shown.id) hint = null },
+                        onScreenChange = { screen = it },
+                        onSlotsChanged = { updated ->
+                            slots.clear()
+                            slots.addAll(updated)
+                            persist()
+                        },
+                        onModeChanged = { newMode ->
+                            mode = newMode
+                            persist()
+                            showHint(modeHintText(newMode))
+                        },
+                        onUseAllSlotsInDirectModeChanged = { value ->
+                            useAllSlotsInDirectMode = value
+                            persist()
+                        },
+                        onIconVariantChanged = { value ->
+                            iconVariant = value
+                            persist()
+                            showHint(getString(R.string.icon_hint_message))
+                        },
+                        onShowPeekBubbleChanged = { value ->
+                            showPeekBubble = value
+                            persist()
+                        },
+                        onShowRecentAppsChanged = { value ->
+                            showRecentApps = value
+                            persist()
+                        },
+                        onThemeChanged = { value ->
+                            theme = value
+                            persist()
+                        },
+                        onConfigImported = { imported ->
+                            val iconChanged = imported.iconVariant != iconVariant
+                            mode = imported.mode
+                            slots.clear()
+                            slots.addAll(imported.slots)
+                            // A backed-up config claiming one of these permission-gated features was
+                            // on doesn't mean the permission is actually granted on THIS device/install
+                            // — the normal toggle flow always checks before flipping to on, and
+                            // importing shouldn't be a way around that (a switch showing "on" with no
+                            // real permission behind it is exactly the confusing state that flow
+                            // prevents).
+                            useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)
+                            iconVariant = imported.iconVariant
+                            showPeekBubble = imported.showPeekBubble && Settings.canDrawOverlays(this)
+                            showRecentApps = imported.showRecentApps && RecentApps.hasUsageAccess(this)
+                            theme = imported.theme
+                            persist()
+                            if (iconChanged) showHint(getString(R.string.icon_hint_message))
+                        }
+                    )
                 }
-
-                NoAppRoot(
-                    mode = mode,
-                    slots = slots,
-                    useAllSlotsInDirectMode = useAllSlotsInDirectMode,
-                    iconVariant = iconVariant,
-                    showPeekBubble = showPeekBubble,
-                    showRecentApps = showRecentApps,
-                    screen = screen,
-                    restartHintToken = restartHintToken,
-                    onScreenChange = { screen = it },
-                    onSlotsChanged = { updated ->
-                        slots.clear()
-                        slots.addAll(updated)
-                        persist(false)
-                    },
-                    onModeChanged = { newMode ->
-                        // Always confirm which mode a plain tap will launch into from here on —
-                        // that's true and worth saying whether or not this specific transition
-                        // also needs a close-and-reopen (risky only decides that internal detail,
-                        // not whether the user gets told what mode they're in).
-                        val risky = com.noapp.container.icon.wouldRiskTeardown(iconVariant, mode, iconVariant, newMode)
-                        mode = newMode
-                        persist(risky)
-                        restartHintToken++
-                        DebugLog.log(this, TAG, "onModeChanged -> $newMode risky=$risky restartHintToken=$restartHintToken")
-                    },
-                    onUseAllSlotsInDirectModeChanged = { value ->
-                        useAllSlotsInDirectMode = value
-                        persist(false)
-                    },
-                    onIconVariantChanged = { value ->
-                        val risky = com.noapp.container.icon.wouldRiskTeardown(iconVariant, mode, value, mode)
-                        iconVariant = value
-                        persist(risky)
-                        if (risky) restartHintToken++
-                    },
-                    onShowPeekBubbleChanged = { value ->
-                        showPeekBubble = value
-                        persist(false)
-                    },
-                    onShowRecentAppsChanged = { value ->
-                        showRecentApps = value
-                        persist(false)
-                    },
-                    onConfigImported = { imported ->
-                        val risky = com.noapp.container.icon.wouldRiskTeardown(iconVariant, mode, imported.iconVariant, imported.mode)
-                        mode = imported.mode
-                        slots.clear()
-                        slots.addAll(imported.slots)
-                        // A backed-up config claiming one of these permission-gated features was on
-                        // doesn't mean the permission is actually granted on THIS device/install —
-                        // the normal toggle flow always checks before flipping to on, and importing
-                        // shouldn't be a way around that (a switch showing "on" with no real
-                        // permission behind it is exactly the confusing state that flow prevents).
-                        useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)
-                        iconVariant = imported.iconVariant
-                        showPeekBubble = imported.showPeekBubble && Settings.canDrawOverlays(this)
-                        showRecentApps = imported.showRecentApps && RecentApps.hasUsageAccess(this)
-                        persist(risky)
-                        if (risky) restartHintToken++
-                    }
-                )
             }
         }
     }
@@ -204,6 +189,12 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         DebugLog.log(this, TAG, "onNewIntent hash=${System.identityHashCode(this)} action=${intent.action} extras=${intent.extras?.keySet()}")
+        val config = ConfigStore.load(this)
+        // Same as on a fresh launch: an icon changed in this very instance (Settings is still
+        // open, user went Home, tapped the launcher icon again) gets applied now rather than
+        // one launch later — with the same clean-task restart, since this task's root intent
+        // still names the alias about to be switched off.
+        if (reconcileLauncherIconOrRestart(intent, config)) return
         if (intent.getBooleanExtra(EXTRA_OPEN_CONFIG, false)) {
             // QuickPickActivity redirects here with this extra when there's nothing configured
             // yet to show — e.g. this instance was already running in the background on some
@@ -211,21 +202,66 @@ class MainActivity : ComponentActivity() {
             // add a shortcut, instead of just resurfacing whatever screen was left open.
             screen = Screen.Config
         } else {
-            dispatchIfShortcut(intent, ConfigStore.load(this))
+            dispatchIfShortcut(intent, config)
             // A repeat share/tap while the UI is already open is rare enough to just leave the
             // current screen as-is rather than re-plumb intent state into the composition.
         }
     }
 
     /**
+     * Makes the launcher icon match [config]'s icon variant. This is the ONLY place the launcher
+     * aliases are ever touched, and it's done before anything is shown — because Android tears
+     * down any task whose root intent names an alias whose enabled state just changed, about a
+     * second after the change and regardless of DONT_KILL_APP (see applyLauncherComponent's doc
+     * comment; confirmed on-device). A launcher tap always arrives through the currently enabled
+     * alias, so if this changed anything, that alias IS this task's root: immediately relaunch
+     * into a task rooted at MainActivity's own class instead, and finish this one. FLAG_ACTIVITY_
+     * CLEAR_TASK re-roots the task, so by the time the batched broadcast lands, nothing left
+     * references the old alias. Keeps the original intent's action/extras so a shortcut/share
+     * tap still gets dispatched correctly on the next pass — but forces the component to
+     * MainActivity's own class rather than copying intent's as-is: when launched through an
+     * activity-alias, Intent.getComponent() names that ALIAS, and an explicit Intent to a just-
+     * disabled component throws ActivityNotFoundException. Nearly always a no-op: it only ever
+     * changes anything on the first launch after Settings > App icon was changed.
+     *
+     * Returns true if it restarted (caller must return without doing anything else).
+     */
+    private fun reconcileLauncherIconOrRestart(intent: Intent, config: AppConfig): Boolean {
+        val changed = applyLauncherComponent(this, config.iconVariant)
+        DebugLog.log(this, TAG, "reconcile launcher icon variant=${config.iconVariant} changed=$changed")
+        if (!changed) return false
+        // The long-press shortcuts are pinned to the enabled alias (see ShortcutSync) — re-pin
+        // them to the new one now, even if the relaunch below goes straight to a dispatch and
+        // never reaches the Config screen's own sync.
+        ShortcutSync.sync(this, config.mode, config.slots, config.useAllSlotsInDirectMode)
+        DebugLog.log(this, TAG, "launcher alias changed, restarting into a clean task")
+        startActivity(
+            Intent(intent)
+                .setClass(this, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        )
+        finish()
+        return true
+    }
+
+    private fun modeHintText(mode: AppMode): String = getString(
+        when (mode) {
+            AppMode.LIST -> R.string.restart_hint_message_list
+            AppMode.DIRECT -> R.string.restart_hint_message_direct
+            AppMode.MIX -> R.string.restart_hint_message_mix
+        }
+    )
+
+    /**
      * Returns true (and finishes the activity) if [intent] should be handled without ever
      * showing MainActivity's own UI: an explicit shortcut tap or a plain DIRECT/MIX-mode tap
-     * dispatch straight to slot 0 (always instant — [AppConfig.useAllSlotsInDirectMode] only
-     * decides whether a translucent Configure gear also flashes on top via
-     * [GearOverlayService], DIRECT only); MIX additionally opens the same [QuickPickActivity]
-     * sheet LIST uses, on top of whatever slot 0 just launched; a plain LIST-mode tap, a MIX
-     * tap with slot 0 unconfigured, or an incoming share also opens that translucent sheet so
-     * it overlays whatever was on screen.
+     * dispatch straight to slot 0 (always instant — a tappable Configure gear also flashes on
+     * top via [GearOverlayService], DIRECT only); MIX additionally opens the same
+     * [QuickPickActivity] sheet LIST uses, on top of whatever slot 0 just launched; a plain
+     * LIST-mode tap, a MIX tap with slot 0 unconfigured, or an incoming share also opens that
+     * translucent sheet so it overlays whatever was on screen. This Activity is translucent
+     * and has no starting window (see themes.xml), so none of these ever flash anything of
+     * their own.
      */
     private fun dispatchIfShortcut(intent: Intent, config: AppConfig): Boolean {
         if (intent.getBooleanExtra(EXTRA_OPEN_CONFIG, false)) return false // Configure entry: show UI instead
@@ -244,7 +280,7 @@ class MainActivity : ComponentActivity() {
         if (isPlainMainTap) {
             config.slots.getOrNull(0)?.let { ActionDispatcher.execute(this, it) }
             when (config.mode) {
-                // Always shown for Direct now, not just when useAllSlotsInDirectMode frees up the
+                // Always shown for Direct, not just when useAllSlotsInDirectMode frees up the
                 // long-press Configure entry — having it appear in some cases but not others was
                 // confusing. Whether Configure also has its own long-press entry is still purely
                 // the toggle's call (see ShortcutSync); this is just an always-available second path.
@@ -278,14 +314,7 @@ class MainActivity : ComponentActivity() {
     private fun isPlainLauncherTap(intent: Intent): Boolean =
         intent.action != Intent.ACTION_SEND
 
-    /**
-     * Every dispatchIfShortcut finish() follows this: MainActivity's own (opaque-themed) window
-     * was never meant to be seen for these — the OS's cold-start icon zoom-in animation for
-     * opening it and its own exit animation for finishing, moments later, otherwise overlap
-     * visibly (two copies of this app's icon on screen at once during the transition — reported
-     * and confirmed on a real device via screen recording). Suppressing the exit transition here
-     * removes the "closing" half of that overlap.
-     */
+    /** Every dispatchIfShortcut finish() follows this: nothing of ours was ever meant to be seen. */
     @Suppress("DEPRECATION")
     private fun finishWithoutTransition() {
         finish()
@@ -293,9 +322,9 @@ class MainActivity : ComponentActivity() {
     }
 
     // These three, logged with the activity's identity hash, are what actually shows whether the
-    // system is tearing this instance down on its own right after a mode change/cold start (no
-    // matching user-initiated onNewIntent/back-press before them) — the smoking gun for "closes
-    // itself, no crash" if that's really an OS-level task teardown rather than a JVM exception.
+    // system is tearing this instance down on its own (no matching user-initiated onNewIntent/
+    // back-press before them) — the smoking gun for "closes itself, no crash" if that's really an
+    // OS-level task teardown rather than a JVM exception.
     override fun onPause() {
         super.onPause()
         DebugLog.log(this, TAG, "onPause hash=${System.identityHashCode(this)}")
@@ -324,8 +353,10 @@ private fun NoAppRoot(
     iconVariant: String,
     showPeekBubble: Boolean,
     showRecentApps: Boolean,
+    theme: AppTheme,
     screen: Screen,
-    restartHintToken: Int,
+    hint: UiHint?,
+    onHintShown: (UiHint) -> Unit,
     onScreenChange: (Screen) -> Unit,
     onSlotsChanged: (List<ShortcutSlot>) -> Unit,
     onModeChanged: (AppMode) -> Unit,
@@ -333,6 +364,7 @@ private fun NoAppRoot(
     onIconVariantChanged: (String) -> Unit,
     onShowPeekBubbleChanged: (Boolean) -> Unit,
     onShowRecentAppsChanged: (Boolean) -> Unit,
+    onThemeChanged: (AppTheme) -> Unit,
     onConfigImported: (AppConfig) -> Unit
 ) {
     if (screen !is Screen.Config) {
@@ -344,7 +376,8 @@ private fun NoAppRoot(
             mode = mode,
             slots = slots,
             showPeekBubble = showPeekBubble,
-            restartHintToken = restartHintToken,
+            hint = hint,
+            onHintShown = onHintShown,
             onEditSlot = { index -> onScreenChange(Screen.EditSlot(index)) },
             onAddSlot = { type -> onScreenChange(Screen.NewSlot(type)) },
             onOpenSettings = { onScreenChange(Screen.Settings) },
@@ -384,13 +417,15 @@ private fun NoAppRoot(
         }
 
         is Screen.Settings -> SettingsScreen(
-            config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps),
-            restartHintToken = restartHintToken,
+            config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps, theme),
+            hint = hint,
+            onHintShown = onHintShown,
             onImportConfig = onConfigImported,
             onUseAllSlotsInDirectModeChanged = onUseAllSlotsInDirectModeChanged,
             onIconVariantChanged = onIconVariantChanged,
             onShowPeekBubbleChanged = onShowPeekBubbleChanged,
             onShowRecentAppsChanged = onShowRecentAppsChanged,
+            onThemeChanged = onThemeChanged,
             onBack = { onScreenChange(Screen.Config) }
         )
     }

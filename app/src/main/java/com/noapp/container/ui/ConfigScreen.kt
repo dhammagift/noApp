@@ -83,7 +83,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
-import com.noapp.container.DebugLog
 import com.noapp.container.R
 import com.noapp.container.icon.AndroidIcon
 import com.noapp.container.icon.BoltIcon
@@ -232,7 +231,8 @@ fun ConfigScreen(
     mode: AppMode,
     slots: List<ShortcutSlot>,
     showPeekBubble: Boolean,
-    restartHintToken: Int,
+    hint: UiHint?,
+    onHintShown: (UiHint) -> Unit,
     onEditSlot: (Int) -> Unit,
     onAddSlot: (SlotType) -> Unit,
     onOpenSettings: () -> Unit,
@@ -246,18 +246,15 @@ fun ConfigScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val undoLabel = stringResource(R.string.common_undo)
-    val restartHintText = restartHintMessage(mode)
 
     // Reuses this screen's own Scaffold-hosted SnackbarHost (already correctly positioned above
-    // the FAB and system bars, same as the Undo snackbar below) rather than a separate host of
-    // its own — token, not the message text or a Boolean, as the LaunchedEffect key so a second
-    // hint while an earlier one is still showing is a distinct key and actually re-triggers.
-    LaunchedEffect(restartHintToken) {
-        DebugLog.log(context, "ConfigScreen", "restart hint effect fired token=$restartHintToken")
-        if (restartHintToken > 0) {
-            DebugLog.log(context, "ConfigScreen", "showing restart hint snackbar text=\"$restartHintText\"")
-            snackbarHostState.showSnackbar(restartHintText)
-        }
+    // the FAB and system bars, same as the Undo snackbar below) rather than a separate host.
+    // Consumed (onHintShown) before the suspend, so navigating away mid-snackbar can't leave it
+    // pending for the next screen to replay — see UiHint.
+    LaunchedEffect(hint?.id) {
+        val pending = hint ?: return@LaunchedEffect
+        onHintShown(pending)
+        snackbarHostState.showSnackbar(pending.text)
     }
 
     fun removeWithUndo(previous: List<ShortcutSlot>, updated: List<ShortcutSlot>, message: String) {

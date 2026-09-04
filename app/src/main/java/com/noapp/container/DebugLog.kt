@@ -5,6 +5,7 @@ import android.content.Intent
 import android.text.format.DateFormat
 import androidx.core.content.FileProvider
 import java.io.File
+import java.util.concurrent.Executors
 
 /**
  * An always-on trail of what the app did and when — not Android's system logcat (a third-party
@@ -12,23 +13,37 @@ import java.io.File
  * calls and key decisions, kept across the whole app's life so a "closes on its own, no crash"
  * report can be diagnosed straight from the phone. See Settings > Debug log for exporting it,
  * and CrashLogger for how an actual uncaught exception also lands in here.
+ *
+ * Writes go through one background thread (in order), so the half-dozen lines every launch
+ * produces never cost file I/O on the main thread — the launch path is the one place this log
+ * exists to observe, and it shouldn't slow it down. [read] queues behind pending writes on the
+ * same thread, so it always sees everything logged before it was called.
  */
 object DebugLog {
     private const val FILE_NAME = "debug_log.txt"
     private const val MAX_SIZE_BYTES = 300_000
+    private val executor = Executors.newSingleThreadExecutor { r -> Thread(r, "DebugLog") }
 
     fun log(context: Context, tag: String, message: String) {
-        runCatching {
-            val line = "${DateFormat.format("MM-dd HH:mm:ss.SSS", System.currentTimeMillis())} [$tag] $message\n"
-            file(context).appendText(line)
-            trimIfNeeded(context)
-        }
+        val appContext = context.applicationContext
+        val line = "${DateFormat.format("MM-dd HH:mm:ss.SSS", System.currentTimeMillis())} [$tag] $message\n"
+        executor.execute { runCatching { append(appContext, line) } }
     }
 
-    fun read(context: Context): String = runCatching { file(context).readText() }.getOrDefault("")
+    /**
+     * Same as [log] but written before returning — for the crash handler, where the process is
+     * about to die and a queued write would be lost with it.
+     */
+    fun logNow(context: Context, tag: String, message: String) {
+        val line = "${DateFormat.format("MM-dd HH:mm:ss.SSS", System.currentTimeMillis())} [$tag] $message\n"
+        runCatching { append(context.applicationContext, line) }
+    }
+
+    fun read(context: Context): String =
+        runCatching { executor.submit<String> { file(context).readText() }.get() }.getOrDefault("")
 
     fun clear(context: Context) {
-        runCatching { file(context).delete() }
+        executor.execute { runCatching { file(context).delete() } }
     }
 
     /** A chooser Intent attaching the log file itself — works even once it's too big to paste. */
@@ -55,11 +70,11 @@ object DebugLog {
     fun file(context: Context): File =
         File(context.getExternalFilesDir(null) ?: context.filesDir, FILE_NAME)
 
-    private fun trimIfNeeded(context: Context) {
+    private fun append(context: Context, line: String) {
         val f = file(context)
+        f.appendText(line)
         if (f.length() > MAX_SIZE_BYTES) {
-            val kept = f.readText().takeLast(MAX_SIZE_BYTES / 2)
-            f.writeText(kept)
+            f.writeText(f.readText().takeLast(MAX_SIZE_BYTES / 2))
         }
     }
 }

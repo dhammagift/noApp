@@ -1,10 +1,6 @@
 <resources>
     <style name="Theme.NoApp" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@android:color/white</item>
-        <!-- MainActivity is the target of every launcher tap, including DIRECT/MIX/LIST
-             dispatches that finish() before ever drawing real content — without this the OS
-             "starting window" (a themed placeholder) flashes on screen first, which reads as
-             an unwanted splash even in modes that show no UI at all. -->
         <item name="android:windowDisablePreview">true</item>
     </style>
 
@@ -20,5 +16,21 @@
              translucent popup, not a real app switch, so a flash-then-list feel is wrong. -->
         <item name="android:windowDisablePreview">true</item>
         <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
+    <!-- MainActivity: translucent too, and that is load-bearing, not cosmetic. It is the target
+         of every launcher tap, and in DIRECT/MIX/LIST it finish()es before drawing anything —
+         but on Android 12+ an OPAQUE activity always gets the system splash screen on launch,
+         windowDisablePreview or not, which reads as an unwanted flash (and, overlapping the
+         real target app's own splash, as a doubled icon). Translucent activities never get a
+         starting window at all. Being translucent is also what lets LIST mode route through
+         here (instead of needing a second set of launcher aliases targeting QuickPickActivity
+         directly, which made switching mode a PackageManager operation — see AppIconSwitcher
+         for why that used to close the app). The Compose root paints its own opaque background
+         (see MainActivity), so the Config/Settings screens still look like a normal app.
+         Keeps the standard activity transition, unlike Transparent, since this one shows real
+         screens. -->
+    <style name="Theme.NoApp.Main" parent="Theme.NoApp.Transparent">
+        <item name="android:windowAnimationStyle">@android:style/Animation.Activity</item>
     </style>
 </resources>

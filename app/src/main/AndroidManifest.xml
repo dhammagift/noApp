@@ -35,12 +35,13 @@
              NEVER enabled/disabled (see icon/AppIconSwitcher.kt) — GearOverlayService,
              QuickPickActivity, and ShortcutSync all target it by explicit component, and an
              explicit Intent to a disabled component fails to launch. Every launcher icon,
-             including the default look, is one of the activity-alias entries below instead. -->
+             including the default look, is one of the activity-alias entries below instead.
+             Translucent (Theme.NoApp.Main) — see themes.xml for why that's essential. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
-            android:theme="@style/Theme.NoApp">
+            android:theme="@style/Theme.NoApp.Main">
 
             <!-- Sharing API: lets other apps share plain text into Not App -->
             <intent-filter>
@@ -50,32 +51,25 @@
             </intent-filter>
         </activity>
 
-        <!-- Translucent popup for the LIST-mode plain tap and incoming shares — overlays
-             whatever was on screen instead of a full opaque app switch. In LIST mode it is
-             also a direct launcher entry point (see the "*List" aliases below): its own
-             starting window is already invisible (windowIsTranslucent + windowDisablePreview
-             in Theme.NoApp.Transparent), which is the only way to make a launcher tap in LIST
-             mode never flash a splash at all — MainActivity's own theme is opaque, so routing
-             a LIST tap through it first (dispatch-then-finish) always flashed its starting
-             window first, no matter how briefly. singleTask so an impatient repeat tap/share
-             reuses the one instance (onNewIntent) instead of stacking a second translucent
-             sheet on top of the first — dismissing the top one used to reveal a duplicate
-             underneath. -->
+        <!-- Translucent popup for the LIST/MIX-mode plain tap and incoming shares — overlays
+             whatever was on screen instead of a full opaque app switch. Only ever started
+             explicitly (by MainActivity's dispatch or the peek bubble), never a launcher
+             target. singleTask so an impatient repeat tap/share reuses the one instance
+             (onNewIntent) instead of stacking a second translucent sheet on top of the first —
+             dismissing the top one used to reveal a duplicate underneath. -->
         <activity
             android:name=".QuickPickActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@style/Theme.NoApp.Transparent" />
 
-        <!-- Launcher icons (Settings > App icon). For each variant, exactly one of its two
-             aliases below is enabled at a time (see icon/AppIconSwitcher.kt): the "Main" one
-             (targeting MainActivity) outside LIST mode, matching DIRECT/MIX's "follow the OS
-             theme, show the real starting window" expectation; the "List" one (targeting
-             QuickPickActivity, whose theme is already splash-invisible) in LIST mode. Both
-             carry the same icon/roundIcon so the launcher/app-drawer entry never changes
-             just because the mode did. MainActivity itself stays enabled and is never one of
-             these targets' own icon — GearOverlayService, QuickPickActivity's Configure
-             button, and ShortcutSync all reach it by explicit component instead. -->
+        <!-- Launcher icons (Settings > App icon): one enabled alias at a time, all targeting
+             MainActivity, which reads the current mode itself (see icon/AppIconSwitcher.kt).
+             The "*List" entries are legacy: older versions enabled those in LIST mode, when
+             they targeted QuickPickActivity directly. They stay declared, with the same icon,
+             so an install that still has one enabled keeps its launcher icon across the
+             update — the code never enables them anymore and disables them on the next icon
+             change. Do not remove them without a migration that first enables the main alias. -->
         <activity-alias
             android:name=".IconDefault"
             android:enabled="true"
@@ -94,7 +88,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher"
             android:roundIcon="@mipmap/ic_launcher"
-            android:targetActivity=".QuickPickActivity">
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -118,7 +112,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_material"
             android:roundIcon="@mipmap/ic_launcher_material"
-            android:targetActivity=".QuickPickActivity">
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -142,7 +136,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_bolt"
             android:roundIcon="@mipmap/ic_launcher_bolt"
-            android:targetActivity=".QuickPickActivity">
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -166,7 +160,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_boost"
             android:roundIcon="@mipmap/ic_launcher_boost"
-            android:targetActivity=".QuickPickActivity">
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -190,7 +184,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_electric"
             android:roundIcon="@mipmap/ic_launcher_electric"
-            android:targetActivity=".QuickPickActivity">
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -214,7 +208,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_flash"
             android:roundIcon="@mipmap/ic_launcher_flash"
-            android:targetActivity=".QuickPickActivity">
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -238,7 +232,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_sankha_flat"
             android:roundIcon="@mipmap/ic_launcher_sankha_flat"
-            android:targetActivity=".QuickPickActivity">
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -262,7 +256,7 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_sankha_3d"
             android:roundIcon="@mipmap/ic_launcher_sankha_3d"
-            android:targetActivity=".QuickPickActivity">
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

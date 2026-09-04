@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.noapp.container.DebugLog
 
 private const val CRASH_REPORT_EMAIL = "agiftofdhamma@gmail.com"
+private const val MAX_INLINE_LOG_CHARS = 12_000
 
 /**
  * Shown instead of the normal screen on the launch right after a crash, so the log (including
@@ -52,7 +53,9 @@ fun CrashReportScreen(logText: String, onDismiss: () -> Unit) {
                 clipboard?.setPrimaryClip(ClipData.newPlainText("Not App log", logText))
             }) { Text("Copy log text") }
             OutlinedButton(onClick = onDismiss) { Text("Dismiss") }
-            Text(logText, style = MaterialTheme.typography.bodySmall)
+            // Only the tail is laid out inline: the file can be 300 KB, and a single Text of
+            // that size takes seconds to measure. Email/Share/Copy above still carry all of it.
+            Text(logText.takeLast(MAX_INLINE_LOG_CHARS), style = MaterialTheme.typography.bodySmall)
         }
     }
 }

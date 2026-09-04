@@ -3,6 +3,7 @@ package com.noapp.container.data
 import android.content.Context
 import com.noapp.container.model.AppConfig
 import com.noapp.container.model.AppMode
+import com.noapp.container.model.AppTheme
 import com.noapp.container.model.ShortcutSlot
 import com.noapp.container.model.SlotType
 import org.json.JSONArray
@@ -38,6 +39,7 @@ object ConfigStore {
             .put("iconVariant", config.iconVariant)
             .put("showPeekBubble", config.showPeekBubble)
             .put("showRecentApps", config.showRecentApps)
+            .put("theme", config.theme.name)
             .toString()
     }
 
@@ -66,7 +68,9 @@ object ConfigStore {
             useAllSlotsInDirectMode = root.optBoolean("useAllSlotsInDirectMode", false),
             iconVariant = root.optString("iconVariant", "default"),
             showPeekBubble = root.optBoolean("showPeekBubble", false),
-            showRecentApps = root.optBoolean("showRecentApps", false)
+            showRecentApps = root.optBoolean("showRecentApps", false),
+            theme = runCatching { AppTheme.valueOf(root.optString("theme", AppTheme.SYSTEM.name)) }
+                .getOrDefault(AppTheme.SYSTEM)
         )
     }.getOrDefault(AppConfig())
 

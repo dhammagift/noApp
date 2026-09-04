@@ -5,6 +5,10 @@
     <string name="settings_title">Settings</string>
     <string name="settings_app_icon">App icon</string>
     <string name="settings_app_icon_hint">Some launchers take a moment (or a trip back to the home screen) to show the new icon.</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
     <string name="settings_language">Language</string>
     <string name="settings_use_all_slots">Use all shortcut slots in Direct mode</string>
     <string name="settings_use_all_slots_on">I show all 4 items on long-press, no Configure entry — instead, when you open me I\'ll show a ⚙ at the top of the screen for a few seconds.</string>
@@ -40,6 +44,7 @@
     <string name="restart_hint_message_list">Done. Next time you tap my icon I\'ll start in List mode.</string>
     <string name="restart_hint_message_direct">Done. Next time you tap my icon I\'ll start in Direct mode.</string>
     <string name="restart_hint_message_mix">Done. Next time you tap my icon I\'ll start in Mix mode.</string>
+    <string name="icon_hint_message">Done — I\'ll switch to the new icon next time you open me.</string>
     <string name="settings_back">Back</string>
     <string name="toast_exported">Exported</string>
     <string name="toast_export_failed">Export failed: %1$s</string>

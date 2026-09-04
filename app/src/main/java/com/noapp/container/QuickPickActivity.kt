@@ -5,12 +5,17 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import com.noapp.container.data.ConfigStore
 import com.noapp.container.model.AppMode
+import com.noapp.container.model.AppTheme
 import com.noapp.container.model.ShortcutSlot
 import com.noapp.container.shortcuts.EXTRA_OPEN_CONFIG
 import com.noapp.container.shortcuts.QuickPickPeekOverlayService
@@ -48,23 +53,31 @@ class QuickPickActivity : ComponentActivity() {
     private var slots by mutableStateOf<List<ShortcutSlot>>(emptyList())
     private var sharedText by mutableStateOf<String?>(null)
     private var showRecentApps by mutableStateOf(false)
+    private var theme by mutableStateOf(AppTheme.SYSTEM)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         DebugLog.log(this, TAG, "onCreate hash=${System.identityHashCode(this)} action=${intent.action} extras=${intent.extras?.keySet()}")
 
         if (CrashLogger.consumePendingCrash(this)) {
-            // LIST mode's launcher icon routes straight here, not through MainActivity — so the
-            // crash-on-next-launch display needs to happen here too, or a crash loop in LIST
-            // mode would never surface it. See CrashLogger.
-            setContent { NoAppTheme { CrashReportScreen(DebugLog.read(this), onDismiss = { recreate() }) } }
+            // Older versions' launcher icon could route straight here in LIST mode; a crash
+            // loop on that path would otherwise never surface the log. See CrashLogger. Opaque
+            // Surface because this Activity's window is transparent.
+            val theme = ConfigStore.load(this).theme
+            setContent {
+                NoAppTheme(theme) {
+                    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                        CrashReportScreen(DebugLog.read(this), onDismiss = { recreate() })
+                    }
+                }
+            }
             return
         }
 
         if (!loadAndDispatch(intent)) return
 
         setContent {
-            NoAppTheme {
+            NoAppTheme(theme) {
                 // Keyed on the content itself so a singleTask re-trigger (onNewIntent calling
                 // loadAndDispatch again) rebuilds the sheet's own remembered animation state
                 // instead of reusing a composition that may already be mid-dismiss.
@@ -114,6 +127,7 @@ class QuickPickActivity : ComponentActivity() {
         }
 
         sharedText = newSharedText
+        theme = config.theme
         // MIX already launches slot 0 directly on a plain tap (see MainActivity.dispatchIfShortcut)
         // — showing it again here would be a visible duplicate of something that just happened.
         // Only for a real tap dispatch, not a share-target pick, where slot 0 is still a valid
