@@ -34,6 +34,10 @@
     <string name="settings_peek_overlay_dialog_text">Чтобы сворачиваться в перетаскиваемую плавающую кнопку вместо простого закрытия, мне нужно разрешение «Отображение поверх других приложений». Сейчас открою системные настройки — найдите там «Not App» и включите его.</string>
     <string name="settings_continue">Продолжить</string>
     <string name="settings_cancel">Отмена</string>
+    <string name="restart_dialog_title">Мне нужно перезапуститься</string>
+    <string name="restart_dialog_text">Чтобы применить эту настройку, мне нужно перезагрузиться.</string>
+    <string name="restart_dialog_restart">Сейчас</string>
+    <string name="restart_dialog_later">Позже</string>
     <string name="settings_back">Назад</string>
     <string name="toast_exported">Экспортировано</string>
     <string name="toast_export_failed">Ошибка экспорта: %1$s</string>

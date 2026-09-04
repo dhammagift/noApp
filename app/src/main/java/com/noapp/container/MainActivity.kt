@@ -23,6 +23,7 @@ import com.noapp.container.shortcuts.GearOverlayService
 import com.noapp.container.shortcuts.ShortcutSync
 import com.noapp.container.ui.ConfigScreen
 import com.noapp.container.ui.CrashReportScreen
+import com.noapp.container.ui.RestartNeededDialog
 import com.noapp.container.ui.SettingsScreen
 import com.noapp.container.ui.SlotEditScreen
 import com.noapp.container.ui.theme.NoAppTheme
@@ -42,13 +43,6 @@ class MainActivity : ComponentActivity() {
     // Hoisted out of setContent (rather than a plain `remember`) so onNewIntent can navigate
     // back to Config below without needing a reference into the running composition.
     private var screen: Screen by mutableStateOf(Screen.Config)
-
-    // Set when a mode/variant/import change needs a different launcher alias than the one
-    // reconciled at this task's cold start (see applyLauncherComponent's own doc comment on why
-    // that can never happen live). Consumed the next time the user backgrounds the app on their
-    // own (onStop below) — restarting then is invisible, since they're already leaving the
-    // screen, and needs no dialog or decision from them.
-    private var pendingAliasRestart = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,10 +68,18 @@ class MainActivity : ComponentActivity() {
             // The alias this task was actually entered through may be exactly the one just
             // disabled above — restart into a fresh task before showing anything, rather than
             // risk the OS tearing this one down a moment later (see applyLauncherComponent's own
-            // doc comment). Reuses the original intent so a real shortcut/share tap still gets
-            // dispatched correctly on the next pass, which this time is a guaranteed no-op here.
+            // doc comment). Keeps the original intent's action/extras so a real shortcut/share
+            // tap still gets dispatched correctly on the next pass (a guaranteed no-op here) —
+            // but forces the component to MainActivity's own class rather than copying intent's
+            // as-is: when launched through an activity-alias, Intent.getComponent() names that
+            // ALIAS, not the real target, and that's exactly the component just disabled above —
+            // an explicit Intent to a disabled component throws ActivityNotFoundException.
             DebugLog.log(this, TAG, "launcher alias changed on cold start, restarting into a clean task")
-            startActivity(Intent(intent).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+            startActivity(
+                Intent(intent)
+                    .setClass(this, MainActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            )
             finish()
             return
         }
@@ -103,6 +105,16 @@ class MainActivity : ComponentActivity() {
                 var iconVariant by remember { mutableStateOf(initialConfig.iconVariant) }
                 var showPeekBubble by remember { mutableStateOf(initialConfig.showPeekBubble) }
                 var showRecentApps by remember { mutableStateOf(initialConfig.showRecentApps) }
+                var showRestartDialog by remember { mutableStateOf(false) }
+
+                fun restartNow() {
+                    startActivity(
+                        Intent(this, MainActivity::class.java)
+                            .putExtra(EXTRA_OPEN_CONFIG, true)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                    )
+                    finish()
+                }
 
                 fun persist() {
                     val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps)
@@ -142,7 +154,7 @@ class MainActivity : ComponentActivity() {
                         DebugLog.log(this, TAG, "mode change $mode -> $newMode needsRestart=$needsRestart")
                         mode = newMode
                         persist()
-                        if (needsRestart) pendingAliasRestart = true
+                        if (needsRestart) showRestartDialog = true
                     },
                     onUseAllSlotsInDirectModeChanged = { value ->
                         useAllSlotsInDirectMode = value
@@ -153,7 +165,7 @@ class MainActivity : ComponentActivity() {
                             com.noapp.container.icon.enabledLauncherComponent(this, value, mode)
                         iconVariant = value
                         persist()
-                        if (needsRestart) pendingAliasRestart = true
+                        if (needsRestart) showRestartDialog = true
                     },
                     onShowPeekBubbleChanged = { value ->
                         showPeekBubble = value
@@ -174,9 +186,16 @@ class MainActivity : ComponentActivity() {
                         showPeekBubble = imported.showPeekBubble
                         showRecentApps = imported.showRecentApps
                         persist()
-                        if (needsRestart) pendingAliasRestart = true
+                        if (needsRestart) showRestartDialog = true
                     }
                 )
+
+                if (showRestartDialog) {
+                    RestartNeededDialog(
+                        onRestart = { showRestartDialog = false; restartNow() },
+                        onDismiss = { showRestartDialog = false }
+                    )
+                }
             }
         }
     }
@@ -254,28 +273,6 @@ class MainActivity : ComponentActivity() {
      */
     private fun isPlainLauncherTap(intent: Intent): Boolean =
         intent.action != Intent.ACTION_SEND
-
-    override fun onResume() {
-        super.onResume()
-        DebugLog.log(this, TAG, "onResume hash=${System.identityHashCode(this)} pendingAliasRestart=$pendingAliasRestart")
-        // Checked here, not in onStop: Android 10+ blocks starting an Activity from a
-        // background/non-foreground context ("background activity launch" restrictions), and
-        // onStop only fires once this Activity has already lost the foreground — a restart
-        // triggered there was silently dropped, so the change only ever seemed to apply on the
-        // NEXT reopen, not this one. onResume runs as this Activity itself becomes foreground —
-        // starting another Activity from here is a normal, allowed foreground transition, so
-        // this fires immediately as part of the very reopen the user just did, invisibly.
-        if (pendingAliasRestart) {
-            pendingAliasRestart = false
-            DebugLog.log(this, TAG, "resumed with a pending alias change, restarting")
-            startActivity(
-                Intent(this, MainActivity::class.java)
-                    .putExtra(EXTRA_OPEN_CONFIG, true)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            )
-            finish()
-        }
-    }
 
     // These three, logged with the activity's identity hash, are what actually shows whether the
     // system is tearing this instance down on its own right after a mode change/cold start (no
