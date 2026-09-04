@@ -7,7 +7,7 @@
     <string name="settings_app_icon_hint">Some launchers take a moment (or a trip back to the home screen) to show the new icon.</string>
     <string name="settings_language">Language</string>
     <string name="settings_use_all_slots">Use all shortcut slots in Direct mode</string>
-    <string name="settings_use_all_slots_on">I show all 4 items on long-press, no Configure entry — I\'ll flash a ⚙ instead.</string>
+    <string name="settings_use_all_slots_on">I show all 4 items on long-press, no Configure entry — instead, when you open me I\'ll show a ⚙ at the top of the screen for a few seconds.</string>
     <string name="settings_use_all_slots_off">I keep one slot reserved for a Configure entry.</string>
     <string name="settings_show_peek_bubble">Floating button in List and Mix modes</string>
     <string name="settings_show_peek_bubble_hint">I collapse the list into an on-screen button when you swipe it away, instead of closing it.</string>
@@ -30,7 +30,7 @@
     <string name="settings_version">Version</string>
     <string name="settings_version_unknown">unknown</string>
     <string name="settings_overlay_dialog_title">How I get you back to Settings</string>
-    <string name="settings_overlay_dialog_text">When you use all shortcut slots, I remove Configure from the long-press menu — your own items take its place. Instead, I\'ll briefly flash a ⚙ over the app I just launched. For that I need the \"draw over other apps\" permission — turn it on in the system settings that open next.</string>
+    <string name="settings_overlay_dialog_text">When you use all shortcut slots, I remove Configure from the long-press menu — your own items take its place. Instead, when you open me I\'ll show a ⚙ at the top of the screen for a few seconds. For that I need the \"draw over other apps\" permission — turn it on in the system settings that open next.</string>
     <string name="settings_peek_overlay_dialog_title">For the floating button I\'ll need \"on top\" permission</string>
     <string name="settings_peek_overlay_dialog_text">To collapse into a draggable floating button instead of just closing, I need the \"draw over other apps\" permission. I\'ll open system settings now — locate \"Not App\" and turn it on there for me.</string>
     <string name="settings_continue">Continue</string>
