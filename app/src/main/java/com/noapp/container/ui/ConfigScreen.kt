@@ -249,12 +249,16 @@ fun ConfigScreen(
 
     // Reuses this screen's own Scaffold-hosted SnackbarHost (already correctly positioned above
     // the FAB and system bars, same as the Undo snackbar below) rather than a separate host.
-    // Consumed (onHintShown) before the suspend, so navigating away mid-snackbar can't leave it
-    // pending for the next screen to replay — see UiHint.
+    // Consumed in `finally`, i.e. once the snackbar is done OR this screen leaves composition
+    // mid-show — never before: clearing the hint changes this effect's key, which cancels the
+    // very coroutine showing it. See UiHint.
     LaunchedEffect(hint?.id) {
         val pending = hint ?: return@LaunchedEffect
-        onHintShown(pending)
-        snackbarHostState.showSnackbar(pending.text)
+        try {
+            snackbarHostState.showSnackbar(pending.text)
+        } finally {
+            onHintShown(pending)
+        }
     }
 
     fun removeWithUndo(previous: List<ShortcutSlot>, updated: List<ShortcutSlot>, message: String) {

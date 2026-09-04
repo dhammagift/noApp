@@ -109,11 +109,14 @@ fun SettingsScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // See ConfigScreen's own copy of this, and UiHint, for the consume-before-show contract.
+    // See ConfigScreen's own copy of this, and UiHint: consumed only after it's been shown.
     LaunchedEffect(hint?.id) {
         val pending = hint ?: return@LaunchedEffect
-        onHintShown(pending)
-        snackbarHostState.showSnackbar(pending.text)
+        try {
+            snackbarHostState.showSnackbar(pending.text)
+        } finally {
+            onHintShown(pending)
+        }
     }
 
     // Cheap insurance against the MIX/LIST peek bubble ever being stuck somewhere the user
