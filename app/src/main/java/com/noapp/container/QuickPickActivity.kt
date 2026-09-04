@@ -14,6 +14,7 @@ import com.noapp.container.model.AppMode
 import com.noapp.container.model.ShortcutSlot
 import com.noapp.container.shortcuts.EXTRA_OPEN_CONFIG
 import com.noapp.container.shortcuts.QuickPickPeekOverlayService
+import com.noapp.container.ui.CrashReportScreen
 import com.noapp.container.ui.QuickPickSheet
 import com.noapp.container.ui.theme.NoAppTheme
 
@@ -50,6 +51,16 @@ class QuickPickActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val lastCrash = CrashLogger.readLastCrash(this)
+        if (lastCrash != null) {
+            // LIST mode's launcher icon routes straight here, not through MainActivity — so the
+            // crash-on-next-launch display needs to happen here too, or a crash loop in LIST
+            // mode would never surface it. See CrashLogger.
+            setContent { NoAppTheme { CrashReportScreen(lastCrash, onDismiss = { CrashLogger.clear(this); recreate() }) } }
+            return
+        }
+
         if (!loadAndDispatch(intent)) return
 
         setContent {

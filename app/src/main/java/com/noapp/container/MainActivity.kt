@@ -22,6 +22,7 @@ import com.noapp.container.shortcuts.EXTRA_SLOT_ID
 import com.noapp.container.shortcuts.GearOverlayService
 import com.noapp.container.shortcuts.ShortcutSync
 import com.noapp.container.ui.ConfigScreen
+import com.noapp.container.ui.CrashReportScreen
 import com.noapp.container.ui.SettingsScreen
 import com.noapp.container.ui.SlotEditScreen
 import com.noapp.container.ui.theme.NoAppTheme
@@ -44,6 +45,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val lastCrash = CrashLogger.readLastCrash(this)
+        if (lastCrash != null) {
+            // Show the crash instead of the normal screen on the very next launch, so it can be
+            // copied straight off the phone — see CrashLogger. Once dismissed, recreate() to run
+            // the rest of onCreate fresh, same as any other cold start.
+            setContent { NoAppTheme { CrashReportScreen(lastCrash, onDismiss = { CrashLogger.clear(this); recreate() }) } }
+            return
+        }
+
         val initialConfig = ConfigStore.load(this)
         // Reconciles the enabled launcher-alias pair with the persisted (variant, mode) —
         // covers an app update that added the "*List" aliases after this config was last
