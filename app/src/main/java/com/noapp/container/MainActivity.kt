@@ -255,6 +255,28 @@ class MainActivity : ComponentActivity() {
     private fun isPlainLauncherTap(intent: Intent): Boolean =
         intent.action != Intent.ACTION_SEND
 
+    override fun onResume() {
+        super.onResume()
+        DebugLog.log(this, TAG, "onResume hash=${System.identityHashCode(this)} pendingAliasRestart=$pendingAliasRestart")
+        // Checked here, not in onStop: Android 10+ blocks starting an Activity from a
+        // background/non-foreground context ("background activity launch" restrictions), and
+        // onStop only fires once this Activity has already lost the foreground — a restart
+        // triggered there was silently dropped, so the change only ever seemed to apply on the
+        // NEXT reopen, not this one. onResume runs as this Activity itself becomes foreground —
+        // starting another Activity from here is a normal, allowed foreground transition, so
+        // this fires immediately as part of the very reopen the user just did, invisibly.
+        if (pendingAliasRestart) {
+            pendingAliasRestart = false
+            DebugLog.log(this, TAG, "resumed with a pending alias change, restarting")
+            startActivity(
+                Intent(this, MainActivity::class.java)
+                    .putExtra(EXTRA_OPEN_CONFIG, true)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            )
+            finish()
+        }
+    }
+
     // These three, logged with the activity's identity hash, are what actually shows whether the
     // system is tearing this instance down on its own right after a mode change/cold start (no
     // matching user-initiated onNewIntent/back-press before them) — the smoking gun for "closes
@@ -266,21 +288,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        DebugLog.log(this, TAG, "onStop hash=${System.identityHashCode(this)} isFinishing=$isFinishing pendingAliasRestart=$pendingAliasRestart")
-        // isFinishing false means the user backgrounded the app themselves (Home, recents,
-        // switching apps) rather than us already tearing this instance down for some other
-        // reason — the moment to slip the alias-reconciling restart in unnoticed, since they're
-        // leaving the screen anyway. Reuses the exact restart used on cold start.
-        if (pendingAliasRestart && !isFinishing) {
-            pendingAliasRestart = false
-            DebugLog.log(this, TAG, "backgrounded with a pending alias change, restarting silently")
-            startActivity(
-                Intent(this, MainActivity::class.java)
-                    .putExtra(EXTRA_OPEN_CONFIG, true)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            )
-            finish()
-        }
+        DebugLog.log(this, TAG, "onStop hash=${System.identityHashCode(this)} isFinishing=$isFinishing")
     }
 
     override fun onDestroy() {
