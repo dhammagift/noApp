@@ -22,7 +22,7 @@
     <string name="settings_share">Share</string>
     <string name="settings_share_text">Check out Not App: %1$s</string>
     <string name="settings_rate_app">Rate app</string>
-    <string name="settings_rate_app_hint">You\'re the star here — but we wouldn\'t say no to one either 😊</string>
+    <string name="settings_rate_app_hint">You\'re the real star here. The more ⭐, the better.</string>
     <string name="settings_source_code">Source code</string>
     <string name="settings_latest_release">GitHub</string>
     <string name="settings_privacy_policy">Privacy policy</string>

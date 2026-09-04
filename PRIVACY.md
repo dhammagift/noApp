@@ -4,9 +4,9 @@ Not App does not collect, transmit, or share any personal data.
 
 ## Our philosophy
 
-Not App has no analytics, no crash reporting, no ad SDKs, and no telemetry
-of any kind built in — nothing in the app phones home, ever. We don't know
-how you use the app, which shortcuts you've configured, or that you're
+Not App has no analytics, no ad SDKs, and no telemetry of any kind that runs
+on its own — nothing in the app phones home automatically, ever. We don't
+know how you use the app, which shortcuts you've configured, or that you're
 using it at all. There's no account, no sign-in, and nothing tying the app
 to your identity. That's a deliberate choice, not just an oversight: the
 whole point of Not App is to be a small, private tool that answers only to
@@ -18,6 +18,13 @@ you.
 - Using "Export config" writes that same local configuration to a file you
   choose, on your device only. Nothing leaves your device unless you share
   that file yourself.
+- Not App keeps a local debug log (what it did and when) and, if it ever
+  crashes, the crash details — both written only to this app's own storage
+  on your device. Neither is ever sent anywhere automatically. The only way
+  either leaves your device is if you deliberately choose to send it, via
+  Settings > Debug log or the "Email crash report" button shown after a
+  crash — both require you to tap Share/Email yourself and pick where it
+  goes (including, optionally, emailing it to us to help fix a bug).
 - Not App requests the following permissions:
   - Permission to list installed apps for the app-picker (a non-runtime,
     non-sensitive query).
@@ -50,4 +57,4 @@ collect their own data about the install and your device, same as for any
 other app on Play — that's between you and Google, and this policy has no
 visibility into or control over it.
 
-_Last updated: 2026-09-03._
+_Last updated: 2026-09-04._

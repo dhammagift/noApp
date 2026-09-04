@@ -118,6 +118,10 @@ fun SettingsScreen(
         }
     }
 
+    var showOverlayExplainer by remember { mutableStateOf(false) }
+    var showPeekOverlayExplainer by remember { mutableStateOf(false) }
+    var showUsageAccessExplainer by remember { mutableStateOf(false) }
+
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -129,12 +133,18 @@ fun SettingsScreen(
         }.onSuccess { imported ->
             onImportConfig(imported)
             Toast.makeText(context, context.getString(R.string.toast_imported), Toast.LENGTH_SHORT).show()
+            // A backed-up config asking for one of these needs the same permission check the
+            // normal toggle-on path does — the config itself already stays off without it (see
+            // MainActivity's onConfigImported), so this is just about actually asking, not
+            // leaving the user to wonder why the switch didn't move.
+            if (imported.useAllSlotsInDirectMode && !AndroidSettings.canDrawOverlays(context)) showOverlayExplainer = true
+            if (imported.showPeekBubble && !AndroidSettings.canDrawOverlays(context)) showPeekOverlayExplainer = true
+            if (imported.showRecentApps && !RecentApps.hasUsageAccess(context)) showUsageAccessExplainer = true
         }.onFailure {
             Toast.makeText(context, context.getString(R.string.toast_import_failed, it.message), Toast.LENGTH_SHORT).show()
         }
     }
 
-    var showOverlayExplainer by remember { mutableStateOf(false) }
     val overlaySettingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
@@ -144,7 +154,6 @@ fun SettingsScreen(
         // Declined: leave the option off, config was never actually flipped.
     }
 
-    var showPeekOverlayExplainer by remember { mutableStateOf(false) }
     val peekOverlaySettingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
@@ -154,7 +163,6 @@ fun SettingsScreen(
         // Declined: leave the option off, config was never actually flipped.
     }
 
-    var showUsageAccessExplainer by remember { mutableStateOf(false) }
     val usageAccessSettingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {

@@ -19,7 +19,7 @@
     <string name="settings_share">Поделиться</string>
     <string name="settings_share_text">Посмотри Not App: %1$s</string>
     <string name="settings_rate_app">Оценить приложение</string>
-    <string name="settings_rate_app_hint">Звезда здесь — вы. Но и нам бы не помешала ☺️</string>
+    <string name="settings_rate_app_hint">Настоящая звезда здесь — вы. Чем больше ⭐, тем лучше.</string>
     <string name="settings_source_code">Исходный код</string>
     <string name="settings_latest_release">GitHub</string>
     <string name="settings_privacy_policy">Политика конфиденциальности</string>
