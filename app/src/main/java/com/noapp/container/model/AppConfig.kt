@@ -24,10 +24,14 @@ data class AppConfig(
     val useAllSlotsInDirectMode: Boolean = false,
     // Matches an IconVariant.id in icon/AppIconSwitcher.kt — "default" is the plain app icon.
     val iconVariant: String = "default",
-    // LIST/MIX only: swiping the list away collapses it into a draggable floating button
-    // (see QuickPickPeekOverlayService) instead of just closing it. Off restores the plain
-    // swipe-to-close behavior in both modes.
-    val showPeekBubble: Boolean = true,
+    // LIST/MIX only, off by default (needs the user to separately grant the "draw over other
+    // apps" permission — same reasoning as showRecentApps below): swiping the list away
+    // collapses it into a draggable floating button (see QuickPickPeekOverlayService) instead
+    // of just closing it. A fresh install starts in LIST mode already, so if this defaulted to
+    // on, the permission-request flow (which only fires on an explicit mode *change* — see
+    // ConfigScreen's ModePickerDialog) would never run and the toggle would just silently do
+    // nothing until the user noticed and re-toggled it themselves.
+    val showPeekBubble: Boolean = false,
     // LIST/MIX only, off by default (needs the user to separately grant Usage Access):
     // shows a compact icon-only row of recently-used apps above the configured items —
     // see recents/RecentApps.kt.
