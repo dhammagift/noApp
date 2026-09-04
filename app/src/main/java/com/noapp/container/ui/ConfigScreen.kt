@@ -130,11 +130,13 @@ private fun ModePickerDialog(
 ) {
     val context = LocalContext.current
     var pendingMode by remember { mutableStateOf<AppMode?>(null) }
+    var showGearExplainer by remember { mutableStateOf(false) }
     val overlaySettingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
         // Granted or not, the mode switch itself already went through below — this permission
-        // is advisory for the peek bubble, which already degrades gracefully without it.
+        // is advisory (both the peek bubble and the Direct-mode gear already degrade gracefully
+        // without it).
     }
 
     fun selectMode(candidate: AppMode) {
@@ -144,6 +146,12 @@ private fun ModePickerDialog(
             !AndroidSettings.canDrawOverlays(context)
         ) {
             pendingMode = candidate
+        }
+        // Direct's gear (GearOverlayService) is always wanted now, not just when a Settings
+        // toggle is on — so ask for its permission right here too, the same way List/Mix does
+        // above for the peek bubble, instead of leaving it silently missing.
+        if (candidate != currentMode && candidate == AppMode.DIRECT && !AndroidSettings.canDrawOverlays(context)) {
+            showGearExplainer = true
         }
         onModeSelected(candidate)
     }
@@ -157,6 +165,18 @@ private fun ModePickerDialog(
                 )
             },
             onDismiss = { pendingMode = null }
+        )
+    }
+
+    if (showGearExplainer) {
+        GearOverlayPermissionDialog(
+            onContinue = {
+                showGearExplainer = false
+                overlaySettingsLauncher.launch(
+                    Intent(AndroidSettings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
+                )
+            },
+            onDismiss = { showGearExplainer = false }
         )
     }
 

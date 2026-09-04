@@ -26,3 +26,23 @@ fun PeekOverlayPermissionDialog(onContinue: () -> Unit, onDismiss: () -> Unit) {
         }
     )
 }
+
+/**
+ * Shared by ConfigScreen (mode picker, on selecting Direct) and SettingsScreen ("Use all
+ * shortcut slots" toggle) so both places that can turn on the always-on-in-Direct gear
+ * (GearOverlayService) explain the "draw over other apps" permission with the same copy.
+ */
+@Composable
+fun GearOverlayPermissionDialog(onContinue: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_overlay_dialog_title)) },
+        text = { Text(stringResource(R.string.settings_overlay_dialog_text)) },
+        confirmButton = {
+            TextButton(onClick = onContinue) { Text(stringResource(R.string.settings_continue)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.settings_cancel)) }
+        }
+    )
+}
