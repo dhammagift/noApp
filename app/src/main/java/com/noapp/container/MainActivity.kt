@@ -56,13 +56,24 @@ class MainActivity : ComponentActivity() {
         }
 
         val initialConfig = ConfigStore.load(this)
-        // Reconciles the enabled launcher-alias pair with the persisted (variant, mode) —
-        // covers an app update that added the "*List" aliases after this config was last
-        // saved, or any other drift; a no-op the rest of the time. Doesn't affect this launch,
-        // only the next one.
+        // Reconciles the enabled launcher-alias pair with the persisted (variant, mode) — covers
+        // a mode/variant change made last session (persist() no longer touches this live, see
+        // there), an app update that added the "*List" aliases after this config was last saved,
+        // or any other drift; a no-op the rest of the time.
         DebugLog.log(this, TAG, "applyLauncherComponent variant=${initialConfig.iconVariant} mode=${initialConfig.mode}")
-        com.noapp.container.icon.applyLauncherComponent(this, initialConfig.iconVariant, initialConfig.mode)
-        DebugLog.log(this, TAG, "applyLauncherComponent done")
+        val aliasChanged = com.noapp.container.icon.applyLauncherComponent(this, initialConfig.iconVariant, initialConfig.mode)
+        DebugLog.log(this, TAG, "applyLauncherComponent done changed=$aliasChanged")
+        if (aliasChanged) {
+            // The alias this task was actually entered through may be exactly the one just
+            // disabled above — restart into a fresh task before showing anything, rather than
+            // risk the OS tearing this one down a moment later (see applyLauncherComponent's own
+            // doc comment). Reuses the original intent so a real shortcut/share tap still gets
+            // dispatched correctly on the next pass, which this time is a guaranteed no-op here.
+            DebugLog.log(this, TAG, "launcher alias changed on cold start, restarting into a clean task")
+            startActivity(Intent(intent).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+            finish()
+            return
+        }
         if (dispatchIfShortcut(intent, initialConfig)) {
             DebugLog.log(this, TAG, "dispatchIfShortcut handled it, finishing")
             return
@@ -89,15 +100,19 @@ class MainActivity : ComponentActivity() {
                 fun persist() {
                     val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps)
                     ConfigStore.save(this, config)
-                    DebugLog.log(this, TAG, "persist: applyLauncherComponent variant=$iconVariant mode=$mode")
-                    // Must enable the target launcher-alias component before syncing shortcuts to
-                    // it (see onCreate's self-heal call and enabledLauncherComponent's doc comment)
-                    // — syncing first ties shortcuts to a component that may still be disabled,
-                    // an ordering some launchers don't recover from without a reboot or a later re-sync.
-                    com.noapp.container.icon.applyLauncherComponent(this, iconVariant, mode)
-                    DebugLog.log(this, TAG, "persist: applyLauncherComponent done, syncing shortcuts")
+                    // Deliberately NOT calling applyLauncherComponent here anymore. Confirmed on a
+                    // real device (see DebugLog): disabling the alias a live task's history
+                    // includes — even reached via an explicit Intent, not that alias directly —
+                    // makes Android tear the whole task down outright, DONT_KILL_APP or not (that
+                    // only protects the process, not a task tied to a component that just went
+                    // away). That's not something to work around with our own forced restart —
+                    // the app should just keep running for as long as the user wants it open.
+                    // onCreate's own call already re-syncs the alias to match on the next cold
+                    // start; ShortcutSync.sync below still runs immediately so the long-press
+                    // items reflect the change right away even if the alias itself lags one
+                    // relaunch behind — a cosmetic gap, not a functional one.
                     ShortcutSync.sync(this, mode, slots.toList(), iconVariant, useAllSlotsInDirectMode)
-                    DebugLog.log(this, TAG, "persist: done")
+                    DebugLog.log(this, TAG, "persist: done mode=$mode variant=$iconVariant")
                 }
 
                 NoAppRoot(

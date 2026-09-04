@@ -44,19 +44,30 @@ val ICON_VARIANTS = listOf(
  * process mid-Settings-screen. Some launchers take a moment (or a home-screen return) to pick up
  * the new icon — that's the OS, not us.
  *
- * Called from MainActivity.onCreate on every cold start (before dispatch) and from every
- * persist() after a mode/variant change — this is the one unguarded-looking OS call on that
- * path, so it's defensive the same way ShortcutSync.sync is: a PackageManager quirk here (some
- * OEM launcher/PM combination this hasn't been tested against) must never take the whole launch
- * down with it. Worst case the launcher icon doesn't switch variant/mode target until the next
+ * Called ONLY from MainActivity.onCreate, on every cold start (before dispatch) — deliberately
+ * not from persist() anymore. A mode/variant change takes effect in the app's own behavior
+ * immediately either way; this reconciles which alias the OS actually sees as the launcher icon
+ * for the next cold start, never live while the app is already open (see persist()'s own comment
+ * for why: this is the one unguarded-looking OS call on the launch path regardless, so it's
+ * defensive the same way ShortcutSync.sync is — a PackageManager quirk here (some OEM
+ * launcher/PM combination this hasn't been tested against) must never take the whole launch down
+ * with it. Worst case the launcher icon doesn't switch variant/mode target until the next
  * attempt — better than the app never opening at all.
  *
  * Deliberately synchronous and atomic (enable the target, disable everything else, in one pass)
  * rather than deferring the disable step: a previous attempt at delaying it left a stray extra
  * launcher icon behind whenever the app closed again before the delayed step ran — worse than
  * the single enabled/disabled pass this reverted to.
+ *
+ * Returns whether any component's enabled state actually changed. Confirmed on-device (see
+ * DebugLog): whenever this disables a component whose alias the CURRENT task's history includes
+ * — even if this exact Activity instance was reached via an explicit Intent, not that alias
+ * directly — Android tears down the whole task shortly after, DONT_KILL_APP notwithstanding
+ * (that flag only protects the process, not a task tied to a component that just went away). A
+ * true no-op call (nothing needed to change) never triggers this. Callers use the return value
+ * to proactively restart into a clean task instead of waiting to be silently killed.
  */
-fun applyLauncherComponent(context: Context, variantId: String, mode: AppMode) {
+fun applyLauncherComponent(context: Context, variantId: String, mode: AppMode): Boolean {
     val result = runCatching {
         val pm = context.packageManager
         val appPackage = context.packageName
@@ -65,24 +76,35 @@ fun applyLauncherComponent(context: Context, variantId: String, mode: AppMode) {
         // older install would otherwise match nothing below, leaving every alias disabled — no
         // launcher icon at all. Fall back to the first variant instead.
         val resolvedVariantId = if (ICON_VARIANTS.any { it.id == variantId }) variantId else ICON_VARIANTS.first().id
+        var changed = false
         for (variant in ICON_VARIANTS) {
             val isChosen = variant.id == resolvedVariantId
-            pm.setComponentEnabledSetting(
-                ComponentName(appPackage, "$NAMESPACE${variant.mainComponentSuffix}"),
-                stateFor(isChosen && !useListTarget),
-                PackageManager.DONT_KILL_APP
-            )
-            pm.setComponentEnabledSetting(
-                ComponentName(appPackage, "$NAMESPACE${variant.listComponentSuffix}"),
-                stateFor(isChosen && useListTarget),
-                PackageManager.DONT_KILL_APP
-            )
+            val mainComponent = ComponentName(appPackage, "$NAMESPACE${variant.mainComponentSuffix}")
+            val listComponent = ComponentName(appPackage, "$NAMESPACE${variant.listComponentSuffix}")
+            // Only the "default" variant's main alias ships android:enabled="true" — every other
+            // alias defaults to false — needed to resolve COMPONENT_ENABLED_STATE_DEFAULT (never
+            // explicitly touched yet, i.e. this exact device/app-data combo's true first call).
+            if (setIfChanged(pm, mainComponent, want = isChosen && !useListTarget, manifestDefault = variant.id == "default")) changed = true
+            if (setIfChanged(pm, listComponent, want = isChosen && useListTarget, manifestDefault = false)) changed = true
         }
+        changed
     }
     // Silent failure here would look identical to "nothing went wrong" in every other log line —
     // this is the one place worth logging even on success, since a caught-but-unlogged exception
     // was indistinguishable from no exception at all in earlier builds.
     result.onFailure { DebugLog.log(context, "AppIconSwitcher", "applyLauncherComponent threw: $it") }
+    return result.getOrDefault(false)
+}
+
+private fun setIfChanged(pm: PackageManager, component: ComponentName, want: Boolean, manifestDefault: Boolean): Boolean {
+    val currentlyEnabled = when (pm.getComponentEnabledSetting(component)) {
+        PackageManager.COMPONENT_ENABLED_STATE_ENABLED -> true
+        PackageManager.COMPONENT_ENABLED_STATE_DEFAULT -> manifestDefault
+        else -> false
+    }
+    if (currentlyEnabled == want) return false
+    pm.setComponentEnabledSetting(component, stateFor(want), PackageManager.DONT_KILL_APP)
+    return true
 }
 
 private fun stateFor(enabled: Boolean) =
