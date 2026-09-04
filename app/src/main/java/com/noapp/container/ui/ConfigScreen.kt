@@ -83,6 +83,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
+import com.noapp.container.DebugLog
 import com.noapp.container.R
 import com.noapp.container.icon.AndroidIcon
 import com.noapp.container.icon.BoltIcon
@@ -252,7 +253,11 @@ fun ConfigScreen(
     // its own — token, not the message text or a Boolean, as the LaunchedEffect key so a second
     // hint while an earlier one is still showing is a distinct key and actually re-triggers.
     LaunchedEffect(restartHintToken) {
-        if (restartHintToken > 0) snackbarHostState.showSnackbar(restartHintText)
+        DebugLog.log(context, "ConfigScreen", "restart hint effect fired token=$restartHintToken")
+        if (restartHintToken > 0) {
+            DebugLog.log(context, "ConfigScreen", "showing restart hint snackbar text=\"$restartHintText\"")
+            snackbarHostState.showSnackbar(restartHintText)
+        }
     }
 
     fun removeWithUndo(previous: List<ShortcutSlot>, updated: List<ShortcutSlot>, message: String) {

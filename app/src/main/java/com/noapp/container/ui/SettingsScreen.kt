@@ -106,7 +106,11 @@ fun SettingsScreen(
 
     // See ConfigScreen's own copy of this for why a token, not the message or a Boolean.
     LaunchedEffect(restartHintToken) {
-        if (restartHintToken > 0) snackbarHostState.showSnackbar(restartHintText)
+        DebugLog.log(context, "SettingsScreen", "restart hint effect fired token=$restartHintToken")
+        if (restartHintToken > 0) {
+            DebugLog.log(context, "SettingsScreen", "showing restart hint snackbar text=\"$restartHintText\"")
+            snackbarHostState.showSnackbar(restartHintText)
+        }
     }
 
     // Cheap insurance against the MIX/LIST peek bubble ever being stuck somewhere the user

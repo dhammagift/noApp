@@ -158,6 +158,7 @@ class MainActivity : ComponentActivity() {
                         mode = newMode
                         persist(risky)
                         restartHintToken++
+                        DebugLog.log(this, TAG, "onModeChanged -> $newMode risky=$risky restartHintToken=$restartHintToken")
                     },
                     onUseAllSlotsInDirectModeChanged = { value ->
                         useAllSlotsInDirectMode = value

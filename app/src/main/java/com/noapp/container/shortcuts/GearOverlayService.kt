@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.hardware.display.DisplayManager
 import android.os.Build
 import android.os.Handler
@@ -25,17 +26,24 @@ private const val DISPLAY_MS = 2500L
 // Matches the Settings gear glyph's actual on-screen size (Material's default 24dp Icon,
 // as seen in ConfigScreen's own Settings button) — the 40dp box this used to render at
 // filled that whole area edge-to-edge once it became a solid vector glyph instead of a
-// smaller emoji-in-circle, which read as oversized.
+// smaller emoji-in-circle, which read as oversized. Kept unchanged; only the scrim behind
+// it (see SCRIM_DP) grew, so the glyph itself still reads at the same tuned size.
 private const val ICON_DP = 24
+// The window/view's own bounds — a few dp larger than the glyph so the dark scrim behind it
+// (added for contrast over light-themed apps, where the glyph's flat white vector alone would
+// be invisible) shows as a visible ring instead of being clipped flush to the glyph's edges.
+private const val SCRIM_DP = 32
 private const val TOP_MARGIN_DP = 12
 private const val END_MARGIN_DP = 12
 
 /**
- * Flashes a translucent Configure gear over whatever was just launched, for
- * useAllSlotsInDirectMode: dispatch itself stays instant (see MainActivity's
- * dispatchIfShortcut), this only adds a tappable overlay on top, auto-dismissing.
- * Never started unless Settings.canDrawOverlays() is already true — that's gated at
- * the point the Settings toggle is turned on.
+ * Flashes a tappable Configure gear over whatever Direct mode just launched — dispatch itself
+ * stays instant (see MainActivity's dispatchIfShortcut), this only adds the overlay on top,
+ * auto-dismissing. Shown on every Direct-mode dispatch, not just when
+ * useAllSlotsInDirectMode has removed the long-press Configure entry — see dispatchIfShortcut's
+ * own comment for why unconditional. Never started unless Settings.canDrawOverlays() is already
+ * true; the mode picker and the "Use all shortcut slots" toggle both actively ask for that
+ * permission (see ConfigScreen's GearOverlayPermissionDialog use and SettingsScreen).
  */
 class GearOverlayService : Service() {
     private var windowManager: WindowManager? = null
@@ -73,7 +81,8 @@ class GearOverlayService : Service() {
         // currently STATE_ON routes the overlay to the screen actually in front of the user.
         val overlayContext = activeDisplayContext()
         val density = overlayContext.resources.displayMetrics.density
-        val sizePx = (ICON_DP * density).toInt()
+        val iconPx = (ICON_DP * density).toInt()
+        val sizePx = (SCRIM_DP * density).toInt()
 
         val wm = overlayContext.getSystemService(WINDOW_SERVICE) as WindowManager
         windowManager = wm
@@ -108,10 +117,18 @@ class GearOverlayService : Service() {
         // value — so the icon must never be allowed past a fifth of the shorter screen edge.
         val maxYPx = (minOf(screenHeightPx, screenWidthPx) * 0.2f).toInt()
 
+        // The glyph itself is a flat white vector (see the drawable) — fine over a dark app,
+        // invisible over a light one. A dark scrim behind it, not the glyph's own color, is what
+        // actually guarantees contrast either way, since it's this overlay's own fixed color
+        // rather than whatever the app underneath happens to be.
         val view = ImageView(overlayContext).apply {
             val gear = ContextCompat.getDrawable(overlayContext, R.drawable.ic_settings_gear)
-            setImageBitmap(gear?.toBitmap(sizePx, sizePx))
-            alpha = 0.55f
+            setImageBitmap(gear?.toBitmap(iconPx, iconPx))
+            scaleType = ImageView.ScaleType.CENTER
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(0xAA000000.toInt())
+            }
             setOnClickListener {
                 startActivity(
                     Intent(this@GearOverlayService, MainActivity::class.java)
