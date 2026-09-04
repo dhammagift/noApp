@@ -150,10 +150,14 @@ class MainActivity : ComponentActivity() {
                         persist(false)
                     },
                     onModeChanged = { newMode ->
+                        // Always confirm which mode a plain tap will launch into from here on —
+                        // that's true and worth saying whether or not this specific transition
+                        // also needs a close-and-reopen (risky only decides that internal detail,
+                        // not whether the user gets told what mode they're in).
                         val risky = com.noapp.container.icon.wouldRiskTeardown(iconVariant, mode, iconVariant, newMode)
                         mode = newMode
                         persist(risky)
-                        if (risky) restartHintToken++
+                        restartHintToken++
                     },
                     onUseAllSlotsInDirectModeChanged = { value ->
                         useAllSlotsInDirectMode = value
