@@ -239,7 +239,7 @@ class MainActivity : ComponentActivity() {
         val explicitId = intent.getIntExtra(EXTRA_SLOT_ID, -1)
         if (explicitId >= 0) {
             config.slots.getOrNull(explicitId)?.let { ActionDispatcher.execute(this, it) }
-            finish()
+            finishWithoutTransition()
             return true
         }
 
@@ -256,7 +256,7 @@ class MainActivity : ComponentActivity() {
                 AppMode.MIX -> startActivity(Intent(this, QuickPickActivity::class.java))
                 AppMode.LIST -> Unit
             }
-            finish()
+            finishWithoutTransition()
             return true
         }
 
@@ -265,7 +265,7 @@ class MainActivity : ComponentActivity() {
         } else null
         if (config.slots.any { it.isConfigured } && (isPlainTap || sharedText != null)) {
             startActivity(Intent(this, QuickPickActivity::class.java).putExtra(EXTRA_SHARED_TEXT, sharedText))
-            finish()
+            finishWithoutTransition()
             return true
         }
         return false
@@ -279,6 +279,20 @@ class MainActivity : ComponentActivity() {
      */
     private fun isPlainLauncherTap(intent: Intent): Boolean =
         intent.action != Intent.ACTION_SEND
+
+    /**
+     * Every dispatchIfShortcut finish() follows this: MainActivity's own (opaque-themed) window
+     * was never meant to be seen for these — the OS's cold-start icon zoom-in animation for
+     * opening it and its own exit animation for finishing, moments later, otherwise overlap
+     * visibly (two copies of this app's icon on screen at once during the transition — reported
+     * and confirmed on a real device via screen recording). Suppressing the exit transition here
+     * removes the "closing" half of that overlap.
+     */
+    @Suppress("DEPRECATION")
+    private fun finishWithoutTransition() {
+        finish()
+        overridePendingTransition(0, 0)
+    }
 
     // These three, logged with the activity's identity hash, are what actually shows whether the
     // system is tearing this instance down on its own right after a mode change/cold start (no
