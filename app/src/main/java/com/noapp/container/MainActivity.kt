@@ -45,13 +45,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        DebugLog.log(this, TAG, "onCreate hash=${System.identityHashCode(this)} action=${intent.action} extras=${intent.extras?.keySet()}")
 
-        val lastCrash = CrashLogger.readLastCrash(this)
-        if (lastCrash != null) {
-            // Show the crash instead of the normal screen on the very next launch, so it can be
-            // copied straight off the phone — see CrashLogger. Once dismissed, recreate() to run
-            // the rest of onCreate fresh, same as any other cold start.
-            setContent { NoAppTheme { CrashReportScreen(lastCrash, onDismiss = { CrashLogger.clear(this); recreate() }) } }
+        if (CrashLogger.consumePendingCrash(this)) {
+            // Show the log instead of the normal screen on the very next launch after a real
+            // crash, so it can be copied/shared straight off the phone — see CrashLogger.
+            // recreate() runs the rest of onCreate fresh once dismissed, same as any cold start.
+            setContent { NoAppTheme { CrashReportScreen(DebugLog.read(this), onDismiss = { recreate() }) } }
             return
         }
 
@@ -60,8 +60,13 @@ class MainActivity : ComponentActivity() {
         // covers an app update that added the "*List" aliases after this config was last
         // saved, or any other drift; a no-op the rest of the time. Doesn't affect this launch,
         // only the next one.
+        DebugLog.log(this, TAG, "applyLauncherComponent variant=${initialConfig.iconVariant} mode=${initialConfig.mode}")
         com.noapp.container.icon.applyLauncherComponent(this, initialConfig.iconVariant, initialConfig.mode)
-        if (dispatchIfShortcut(intent, initialConfig)) return
+        DebugLog.log(this, TAG, "applyLauncherComponent done")
+        if (dispatchIfShortcut(intent, initialConfig)) {
+            DebugLog.log(this, TAG, "dispatchIfShortcut handled it, finishing")
+            return
+        }
 
         // Self-heals installs whose shortcuts were published before ShortcutSync started
         // pinning them to the enabled alias explicitly (see its own doc comment) — those
@@ -70,6 +75,7 @@ class MainActivity : ComponentActivity() {
         // has already decided this isn't a fast dispatch, so it never adds work (or risk) to
         // that hot path.
         ShortcutSync.sync(this, initialConfig.mode, initialConfig.slots, initialConfig.iconVariant, initialConfig.useAllSlotsInDirectMode)
+        DebugLog.log(this, TAG, "showing Config screen")
 
         setContent {
             NoAppTheme {
@@ -83,12 +89,15 @@ class MainActivity : ComponentActivity() {
                 fun persist() {
                     val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps)
                     ConfigStore.save(this, config)
+                    DebugLog.log(this, TAG, "persist: applyLauncherComponent variant=$iconVariant mode=$mode")
                     // Must enable the target launcher-alias component before syncing shortcuts to
                     // it (see onCreate's self-heal call and enabledLauncherComponent's doc comment)
                     // — syncing first ties shortcuts to a component that may still be disabled,
                     // an ordering some launchers don't recover from without a reboot or a later re-sync.
                     com.noapp.container.icon.applyLauncherComponent(this, iconVariant, mode)
+                    DebugLog.log(this, TAG, "persist: applyLauncherComponent done, syncing shortcuts")
                     ShortcutSync.sync(this, mode, slots.toList(), iconVariant, useAllSlotsInDirectMode)
+                    DebugLog.log(this, TAG, "persist: done")
                 }
 
                 NoAppRoot(
@@ -106,6 +115,7 @@ class MainActivity : ComponentActivity() {
                         persist()
                     },
                     onModeChanged = { newMode ->
+                        DebugLog.log(this, TAG, "mode change $mode -> $newMode")
                         mode = newMode
                         persist()
                     },
@@ -143,6 +153,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        DebugLog.log(this, TAG, "onNewIntent hash=${System.identityHashCode(this)} action=${intent.action} extras=${intent.extras?.keySet()}")
         if (intent.getBooleanExtra(EXTRA_OPEN_CONFIG, false)) {
             // QuickPickActivity redirects here with this extra when there's nothing configured
             // yet to show — e.g. this instance was already running in the background on some
@@ -213,6 +224,28 @@ class MainActivity : ComponentActivity() {
     private fun isPlainLauncherTap(intent: Intent): Boolean =
         intent.action != Intent.ACTION_SEND
 
+    // These three, logged with the activity's identity hash, are what actually shows whether the
+    // system is tearing this instance down on its own right after a mode change/cold start (no
+    // matching user-initiated onNewIntent/back-press before them) — the smoking gun for "closes
+    // itself, no crash" if that's really an OS-level task teardown rather than a JVM exception.
+    override fun onPause() {
+        super.onPause()
+        DebugLog.log(this, TAG, "onPause hash=${System.identityHashCode(this)}")
+    }
+
+    override fun onStop() {
+        super.onStop()
+        DebugLog.log(this, TAG, "onStop hash=${System.identityHashCode(this)} isFinishing=$isFinishing")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        DebugLog.log(this, TAG, "onDestroy hash=${System.identityHashCode(this)} isFinishing=$isFinishing")
+    }
+
+    private companion object {
+        const val TAG = "MainActivity"
+    }
 }
 
 @androidx.compose.runtime.Composable

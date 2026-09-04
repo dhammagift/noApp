@@ -2,39 +2,37 @@ package com.noapp.container
 
 import android.content.Context
 import android.util.Log
-import java.io.File
-import java.util.Date
 
 /**
- * Writes the last uncaught exception to a file under app-specific external storage — visible
- * via any file manager at Android/data/gift.dhamma.noapp/files/last_crash.txt, no root or ADB
- * needed — so a crash can be reported from a phone alone. Installed once from
- * [NoAppApplication.onCreate], so it also catches crashes that happen before MainActivity ever
- * gets a chance to run (e.g. during the launcher-icon reconciliation on a cold start).
+ * Catches uncaught exceptions and feeds them into DebugLog, plus flags that the very next
+ * launch should show the log full-screen instead of proceeding normally. If the app disappears
+ * without ever setting this flag, whatever is closing it isn't a JVM exception at all (nothing
+ * for an UncaughtExceptionHandler to catch) — that's diagnostic in itself; see DebugLog's own
+ * lifecycle entries for what actually happened instead.
  */
 object CrashLogger {
-    private const val FILE_NAME = "last_crash.txt"
+    private const val PREFS_NAME = "crash_logger_prefs"
+    private const val KEY_PENDING_CRASH = "pending_crash"
 
     fun install(context: Context) {
         val appContext = context.applicationContext
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             runCatching {
-                file(appContext).writeText(
-                    "Not App crash — ${Date()}\n\n${Log.getStackTraceString(throwable)}"
-                )
+                DebugLog.log(appContext, "CRASH", Log.getStackTraceString(throwable))
+                prefs(appContext).edit().putBoolean(KEY_PENDING_CRASH, true).apply()
             }
             previousHandler?.uncaughtException(thread, throwable)
         }
     }
 
-    fun readLastCrash(context: Context): String? =
-        file(context).takeIf { it.exists() }?.readText()
-
-    fun clear(context: Context) {
-        file(context).delete()
+    /** True at most once per crash — clears the flag as it reads it. */
+    fun consumePendingCrash(context: Context): Boolean {
+        val p = prefs(context)
+        val pending = p.getBoolean(KEY_PENDING_CRASH, false)
+        if (pending) p.edit().putBoolean(KEY_PENDING_CRASH, false).apply()
+        return pending
     }
 
-    private fun file(context: Context): File =
-        File(context.getExternalFilesDir(null) ?: context.filesDir, FILE_NAME)
+    private fun prefs(context: Context) = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 }

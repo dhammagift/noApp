@@ -27,6 +27,8 @@
     <string name="settings_privacy_policy">Privacy policy</string>
     <string name="settings_backup">Backup</string>
     <string name="settings_restore">Restore</string>
+    <string name="settings_debug_log">Debug log</string>
+    <string name="settings_debug_log_hint">Share a log of what I did and when — useful if I close on my own and you want to report it</string>
     <string name="settings_version">Version</string>
     <string name="settings_version_unknown">unknown</string>
     <string name="settings_overlay_dialog_title">How I get you back to Settings</string>

@@ -54,6 +54,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.compose.foundation.Image
+import com.noapp.container.DebugLog
 import com.noapp.container.R
 import com.noapp.container.data.ConfigStore
 import com.noapp.container.icon.ICON_VARIANTS
@@ -371,6 +372,14 @@ fun SettingsScreen(
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_restore)) },
                 modifier = Modifier.clickable { importLauncher.launch(arrayOf("application/json")) }
+            )
+            HorizontalDivider()
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_debug_log)) },
+                supportingContent = { Text(stringResource(R.string.settings_debug_log_hint)) },
+                modifier = Modifier.clickable {
+                    runCatching { context.startActivity(DebugLog.shareIntent(context)) }
+                }
             )
             HorizontalDivider()
             val pkgInfo = remember {

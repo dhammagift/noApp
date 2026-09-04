@@ -24,6 +24,8 @@
     <string name="settings_privacy_policy">Политика конфиденциальности</string>
     <string name="settings_backup">Резервная копия</string>
     <string name="settings_restore">Восстановить</string>
+    <string name="settings_debug_log">Отладочный лог</string>
+    <string name="settings_debug_log_hint">Поделиться логом того, что я делал и когда — пригодится, если я закрываюсь сам и вы хотите сообщить об этом</string>
     <string name="settings_version">Версия</string>
     <string name="settings_version_unknown">неизвестно</string>
     <string name="settings_overlay_dialog_title">Как мне попасть в Настройки</string>

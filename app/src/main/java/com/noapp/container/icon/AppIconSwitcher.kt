@@ -3,6 +3,7 @@ package com.noapp.container.icon
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
+import com.noapp.container.DebugLog
 import com.noapp.container.R
 import com.noapp.container.model.AppMode
 
@@ -56,7 +57,7 @@ val ICON_VARIANTS = listOf(
  * the single enabled/disabled pass this reverted to.
  */
 fun applyLauncherComponent(context: Context, variantId: String, mode: AppMode) {
-    runCatching {
+    val result = runCatching {
         val pm = context.packageManager
         val appPackage = context.packageName
         val useListTarget = mode == AppMode.LIST
@@ -78,6 +79,10 @@ fun applyLauncherComponent(context: Context, variantId: String, mode: AppMode) {
             )
         }
     }
+    // Silent failure here would look identical to "nothing went wrong" in every other log line —
+    // this is the one place worth logging even on success, since a caught-but-unlogged exception
+    // was indistinguishable from no exception at all in earlier builds.
+    result.onFailure { DebugLog.log(context, "AppIconSwitcher", "applyLauncherComponent threw: $it") }
 }
 
 private fun stateFor(enabled: Boolean) =

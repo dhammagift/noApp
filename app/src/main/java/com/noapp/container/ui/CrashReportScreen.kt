@@ -17,14 +17,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.noapp.container.DebugLog
 
 /**
- * Shown instead of the normal screen on the launch right after a crash, so the crash text can
- * be grabbed straight from the phone — no ADB/PC needed. See CrashLogger for where this is
- * written and read.
+ * Shown instead of the normal screen on the launch right after a crash, so the log (including
+ * the crash itself) can be grabbed straight from the phone — no ADB/PC needed. See CrashLogger
+ * for where the "show this next launch" flag comes from and DebugLog for the log content itself.
  */
 @Composable
-fun CrashReportScreen(crashText: String, onDismiss: () -> Unit) {
+fun CrashReportScreen(logText: String, onDismiss: () -> Unit) {
     val context = LocalContext.current
     Scaffold { padding ->
         Column(
@@ -33,15 +34,18 @@ fun CrashReportScreen(crashText: String, onDismiss: () -> Unit) {
         ) {
             Text("Not App crashed last time", style = MaterialTheme.typography.titleLarge)
             Text(
-                "Copy this and send it over so the crash can be diagnosed.",
+                "Share this log so the crash can be diagnosed.",
                 style = MaterialTheme.typography.bodyMedium
             )
-            Text(crashText, style = MaterialTheme.typography.bodySmall)
-            Button(onClick = {
+            Button(onClick = { runCatching { context.startActivity(DebugLog.shareIntent(context)) } }) {
+                Text("Share log")
+            }
+            OutlinedButton(onClick = {
                 val clipboard = context.getSystemService(ClipboardManager::class.java)
-                clipboard?.setPrimaryClip(ClipData.newPlainText("Not App crash", crashText))
-            }) { Text("Copy crash text") }
+                clipboard?.setPrimaryClip(ClipData.newPlainText("Not App log", logText))
+            }) { Text("Copy log text") }
             OutlinedButton(onClick = onDismiss) { Text("Dismiss") }
+            Text(logText, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

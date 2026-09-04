@@ -51,13 +51,13 @@ class QuickPickActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        DebugLog.log(this, TAG, "onCreate hash=${System.identityHashCode(this)} action=${intent.action} extras=${intent.extras?.keySet()}")
 
-        val lastCrash = CrashLogger.readLastCrash(this)
-        if (lastCrash != null) {
+        if (CrashLogger.consumePendingCrash(this)) {
             // LIST mode's launcher icon routes straight here, not through MainActivity — so the
             // crash-on-next-launch display needs to happen here too, or a crash loop in LIST
             // mode would never surface it. See CrashLogger.
-            setContent { NoAppTheme { CrashReportScreen(lastCrash, onDismiss = { CrashLogger.clear(this); recreate() }) } }
+            setContent { NoAppTheme { CrashReportScreen(DebugLog.read(this), onDismiss = { recreate() }) } }
             return
         }
 
@@ -93,6 +93,7 @@ class QuickPickActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        DebugLog.log(this, TAG, "onNewIntent hash=${System.identityHashCode(this)} action=${intent.action} extras=${intent.extras?.keySet()}")
         loadAndDispatch(intent)
     }
 
@@ -106,6 +107,7 @@ class QuickPickActivity : ComponentActivity() {
         val newSlots = config.slots.filter { it.isConfigured }
 
         if (newSlots.isEmpty() && newSharedText == null) {
+            DebugLog.log(this, TAG, "no configured slots, redirecting to Configure")
             startActivity(Intent(this, MainActivity::class.java).putExtra(EXTRA_OPEN_CONFIG, true))
             finish()
             return false
@@ -127,6 +129,7 @@ class QuickPickActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
+        DebugLog.log(this, TAG, "onStop hash=${System.identityHashCode(this)} isFinishing=$isFinishing allowPeek=$allowPeek")
         // isFinishing is already true here if the sheet's own onDismiss/onConfigure/item-tap
         // already handled this (including the swipe-away peek path, which starts the same
         // service itself) — this only fires for actually leaving via Home/recents/switching
@@ -136,5 +139,14 @@ class QuickPickActivity : ComponentActivity() {
             startService(Intent(this, QuickPickPeekOverlayService::class.java))
             finish()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        DebugLog.log(this, TAG, "onDestroy hash=${System.identityHashCode(this)} isFinishing=$isFinishing")
+    }
+
+    private companion object {
+        const val TAG = "QuickPickActivity"
     }
 }
