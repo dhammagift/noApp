@@ -3,6 +3,8 @@ package com.noapp.container.icon
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Handler
+import android.os.Looper
 import com.noapp.container.R
 import com.noapp.container.model.AppMode
 
@@ -43,11 +45,22 @@ val ICON_VARIANTS = listOf(
  * process mid-Settings-screen. Some launchers take a moment (or a home-screen return) to pick up
  * the new icon — that's the OS, not us.
  *
- * Called from MainActivity.onCreate on every cold start, before anything else — this is the one
- * unguarded-looking OS call on that path, so it's defensive the same way ShortcutSync.sync is:
- * a PackageManager quirk here (some OEM launcher/PM combination this hasn't been tested against)
- * must never take the whole launch down with it. Worst case the launcher icon doesn't switch
- * variant/mode target until the next attempt — better than the app never opening at all.
+ * Called from MainActivity.onCreate on every cold start (before dispatch) and from every
+ * persist() after a mode/variant change — this is the one unguarded-looking OS call on that
+ * path, so it's defensive the same way ShortcutSync.sync is: a PackageManager quirk here (some
+ * OEM launcher/PM combination this hasn't been tested against) must never take the whole launch
+ * down with it. Worst case the launcher icon doesn't switch variant/mode target until the next
+ * attempt — better than the app never opening at all.
+ *
+ * Enables the new target FIRST, then disables every other alias on a short delay instead of
+ * inline — not just cosmetic ordering. The activity currently on screen may itself have been
+ * launched straight through one of these aliases (a fresh install's first tap goes through the
+ * manifest-default enabled alias directly into MainActivity; so does any plain DIRECT/MIX tap
+ * with nothing configured yet, before there's anything to dispatch). Disabling that same alias
+ * synchronously — even with DONT_KILL_APP, which only protects the process, not a live task tied
+ * to a component identity that just went away — can make Android tear down that activity right
+ * then, which surfaces as the app appearing to close itself the instant the mode changes (or on
+ * that very first launch, since onCreate's self-heal call does exactly this reconciliation).
  */
 fun applyLauncherComponent(context: Context, variantId: String, mode: AppMode) {
     runCatching {
@@ -58,24 +71,40 @@ fun applyLauncherComponent(context: Context, variantId: String, mode: AppMode) {
         // older install would otherwise match nothing below, leaving every alias disabled — no
         // launcher icon at all. Fall back to the first variant instead.
         val resolvedVariantId = if (ICON_VARIANTS.any { it.id == variantId }) variantId else ICON_VARIANTS.first().id
-        for (variant in ICON_VARIANTS) {
-            val isChosen = variant.id == resolvedVariantId
-            pm.setComponentEnabledSetting(
-                ComponentName(appPackage, "$NAMESPACE${variant.mainComponentSuffix}"),
-                stateFor(isChosen && !useListTarget),
-                PackageManager.DONT_KILL_APP
-            )
-            pm.setComponentEnabledSetting(
-                ComponentName(appPackage, "$NAMESPACE${variant.listComponentSuffix}"),
-                stateFor(isChosen && useListTarget),
-                PackageManager.DONT_KILL_APP
-            )
-        }
+        val chosen = ICON_VARIANTS.first { it.id == resolvedVariantId }
+        val targetSuffix = if (useListTarget) chosen.listComponentSuffix else chosen.mainComponentSuffix
+
+        pm.setComponentEnabledSetting(
+            ComponentName(appPackage, "$NAMESPACE$targetSuffix"),
+            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+            PackageManager.DONT_KILL_APP
+        )
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            runCatching {
+                for (variant in ICON_VARIANTS) {
+                    val isChosen = variant.id == resolvedVariantId
+                    if (!(isChosen && !useListTarget)) {
+                        pm.setComponentEnabledSetting(
+                            ComponentName(appPackage, "$NAMESPACE${variant.mainComponentSuffix}"),
+                            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                            PackageManager.DONT_KILL_APP
+                        )
+                    }
+                    if (!(isChosen && useListTarget)) {
+                        pm.setComponentEnabledSetting(
+                            ComponentName(appPackage, "$NAMESPACE${variant.listComponentSuffix}"),
+                            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                            PackageManager.DONT_KILL_APP
+                        )
+                    }
+                }
+            }
+        }, DISABLE_OTHER_ALIASES_DELAY_MS)
     }
 }
 
-private fun stateFor(enabled: Boolean) =
-    if (enabled) PackageManager.COMPONENT_ENABLED_STATE_ENABLED else PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+private const val DISABLE_OTHER_ALIASES_DELAY_MS = 1500L
 
 /**
  * The one alias [applyLauncherComponent] leaves enabled for [variantId]/[mode] — needed so
