@@ -43,6 +43,13 @@ class MainActivity : ComponentActivity() {
     // back to Config below without needing a reference into the running composition.
     private var screen: Screen by mutableStateOf(Screen.Config)
 
+    // Set when a mode/variant/import change needs a different launcher alias than the one
+    // reconciled at this task's cold start (see applyLauncherComponent's own doc comment on why
+    // that can never happen live). Consumed the next time the user backgrounds the app on their
+    // own (onStop below) — restarting then is invisible, since they're already leaving the
+    // screen, and needs no dialog or decision from them.
+    private var pendingAliasRestart = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         DebugLog.log(this, TAG, "onCreate hash=${System.identityHashCode(this)} action=${intent.action} extras=${intent.extras?.keySet()}")
@@ -130,17 +137,23 @@ class MainActivity : ComponentActivity() {
                         persist()
                     },
                     onModeChanged = { newMode ->
-                        DebugLog.log(this, TAG, "mode change $mode -> $newMode")
+                        val needsRestart = com.noapp.container.icon.enabledLauncherComponent(this, iconVariant, mode) !=
+                            com.noapp.container.icon.enabledLauncherComponent(this, iconVariant, newMode)
+                        DebugLog.log(this, TAG, "mode change $mode -> $newMode needsRestart=$needsRestart")
                         mode = newMode
                         persist()
+                        if (needsRestart) pendingAliasRestart = true
                     },
                     onUseAllSlotsInDirectModeChanged = { value ->
                         useAllSlotsInDirectMode = value
                         persist()
                     },
                     onIconVariantChanged = { value ->
+                        val needsRestart = com.noapp.container.icon.enabledLauncherComponent(this, iconVariant, mode) !=
+                            com.noapp.container.icon.enabledLauncherComponent(this, value, mode)
                         iconVariant = value
                         persist()
+                        if (needsRestart) pendingAliasRestart = true
                     },
                     onShowPeekBubbleChanged = { value ->
                         showPeekBubble = value
@@ -151,6 +164,8 @@ class MainActivity : ComponentActivity() {
                         persist()
                     },
                     onConfigImported = { imported ->
+                        val needsRestart = com.noapp.container.icon.enabledLauncherComponent(this, iconVariant, mode) !=
+                            com.noapp.container.icon.enabledLauncherComponent(this, imported.iconVariant, imported.mode)
                         mode = imported.mode
                         slots.clear()
                         slots.addAll(imported.slots)
@@ -159,6 +174,7 @@ class MainActivity : ComponentActivity() {
                         showPeekBubble = imported.showPeekBubble
                         showRecentApps = imported.showRecentApps
                         persist()
+                        if (needsRestart) pendingAliasRestart = true
                     }
                 )
             }
@@ -250,7 +266,21 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        DebugLog.log(this, TAG, "onStop hash=${System.identityHashCode(this)} isFinishing=$isFinishing")
+        DebugLog.log(this, TAG, "onStop hash=${System.identityHashCode(this)} isFinishing=$isFinishing pendingAliasRestart=$pendingAliasRestart")
+        // isFinishing false means the user backgrounded the app themselves (Home, recents,
+        // switching apps) rather than us already tearing this instance down for some other
+        // reason — the moment to slip the alias-reconciling restart in unnoticed, since they're
+        // leaving the screen anyway. Reuses the exact restart used on cold start.
+        if (pendingAliasRestart && !isFinishing) {
+            pendingAliasRestart = false
+            DebugLog.log(this, TAG, "backgrounded with a pending alias change, restarting silently")
+            startActivity(
+                Intent(this, MainActivity::class.java)
+                    .putExtra(EXTRA_OPEN_CONFIG, true)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            )
+            finish()
+        }
     }
 
     override fun onDestroy() {
