@@ -22,13 +22,13 @@
     <string name="settings_share">Share</string>
     <string name="settings_share_text">Check out Not App: %1$s</string>
     <string name="settings_rate_app">Rate app</string>
+    <string name="settings_rate_app_hint">You\'re the star here — but we wouldn\'t say no to one either 😊</string>
     <string name="settings_source_code">Source code</string>
-    <string name="settings_latest_release">Latest release</string>
+    <string name="settings_latest_release">GitHub</string>
     <string name="settings_privacy_policy">Privacy policy</string>
     <string name="settings_backup">Backup</string>
     <string name="settings_restore">Restore</string>
     <string name="settings_debug_log">Debug log</string>
-    <string name="settings_debug_log_hint">Share a log of what I did and when — useful if I close on my own and you want to report it</string>
     <string name="settings_version">Version</string>
     <string name="settings_version_unknown">unknown</string>
     <string name="settings_overlay_dialog_title">How I get you back to Settings</string>

@@ -19,6 +19,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.noapp.container.DebugLog
 
+private const val CRASH_REPORT_EMAIL = "agiftofdhamma@gmail.com"
+
 /**
  * Shown instead of the normal screen on the launch right after a crash, so the log (including
  * the crash itself) can be grabbed straight from the phone — no ADB/PC needed. See CrashLogger
@@ -34,10 +36,15 @@ fun CrashReportScreen(logText: String, onDismiss: () -> Unit) {
         ) {
             Text("Not App crashed last time", style = MaterialTheme.typography.titleLarge)
             Text(
-                "Share this log so the crash can be diagnosed.",
+                "Send this log so the crash can be diagnosed.",
                 style = MaterialTheme.typography.bodyMedium
             )
-            Button(onClick = { runCatching { context.startActivity(DebugLog.shareIntent(context)) } }) {
+            Button(onClick = {
+                runCatching {
+                    context.startActivity(DebugLog.emailIntent(context, CRASH_REPORT_EMAIL, "Not App crash report"))
+                }
+            }) { Text("Email crash report") }
+            OutlinedButton(onClick = { runCatching { context.startActivity(DebugLog.shareIntent(context)) } }) {
                 Text("Share log")
             }
             OutlinedButton(onClick = {

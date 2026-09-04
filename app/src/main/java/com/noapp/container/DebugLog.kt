@@ -41,6 +41,17 @@ object DebugLog {
         return Intent.createChooser(send, null)
     }
 
+    /** Same log file, pre-addressed to an email — "message/rfc822" targets mail apps specifically. */
+    fun emailIntent(context: Context, to: String, subject: String): Intent {
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file(context))
+        return Intent(Intent.ACTION_SEND)
+            .setType("message/rfc822")
+            .putExtra(Intent.EXTRA_EMAIL, arrayOf(to))
+            .putExtra(Intent.EXTRA_SUBJECT, subject)
+            .putExtra(Intent.EXTRA_STREAM, uri)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+
     fun file(context: Context): File =
         File(context.getExternalFilesDir(null) ?: context.filesDir, FILE_NAME)
 

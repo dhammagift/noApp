@@ -332,6 +332,7 @@ fun SettingsScreen(
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_rate_app)) },
+                supportingContent = { Text(stringResource(R.string.settings_rate_app_hint)) },
                 leadingContent = { Icon(Icons.Default.Star, contentDescription = null) },
                 modifier = Modifier.clickable {
                     val pkg = context.packageName
@@ -342,19 +343,6 @@ fun SettingsScreen(
                             Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$pkg"))
                         )
                     }
-                }
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_source_code)) },
-                modifier = Modifier.clickable {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_URL)))
-                }
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_latest_release)) },
-                leadingContent = { Icon(painterResource(R.drawable.ic_github), contentDescription = null) },
-                modifier = Modifier.clickable {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_RELEASES_URL)))
                 }
             )
             ListItem(
@@ -375,13 +363,24 @@ fun SettingsScreen(
             )
             HorizontalDivider()
             ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_source_code)) },
+                modifier = Modifier.clickable {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_URL)))
+                }
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_latest_release)) },
+                leadingContent = { Icon(painterResource(R.drawable.ic_github), contentDescription = null) },
+                modifier = Modifier.clickable {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_RELEASES_URL)))
+                }
+            )
+            ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_debug_log)) },
-                supportingContent = { Text(stringResource(R.string.settings_debug_log_hint)) },
                 modifier = Modifier.clickable {
                     runCatching { context.startActivity(DebugLog.shareIntent(context)) }
                 }
             )
-            HorizontalDivider()
             val pkgInfo = remember {
                 runCatching { context.packageManager.getPackageInfo(context.packageName, 0) }.getOrNull()
             }

@@ -16,6 +16,7 @@ import com.noapp.container.model.AppConfig
 import com.noapp.container.model.AppMode
 import com.noapp.container.model.ShortcutSlot
 import com.noapp.container.model.SlotType
+import com.noapp.container.recents.RecentApps
 import com.noapp.container.shortcuts.ActionDispatcher
 import com.noapp.container.shortcuts.EXTRA_OPEN_CONFIG
 import com.noapp.container.shortcuts.EXTRA_SLOT_ID
@@ -181,10 +182,15 @@ class MainActivity : ComponentActivity() {
                         mode = imported.mode
                         slots.clear()
                         slots.addAll(imported.slots)
-                        useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode
+                        // A backed-up config claiming one of these permission-gated features was on
+                        // doesn't mean the permission is actually granted on THIS device/install —
+                        // the normal toggle flow always checks before flipping to on, and importing
+                        // shouldn't be a way around that (a switch showing "on" with no real
+                        // permission behind it is exactly the confusing state that flow prevents).
+                        useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)
                         iconVariant = imported.iconVariant
-                        showPeekBubble = imported.showPeekBubble
-                        showRecentApps = imported.showRecentApps
+                        showPeekBubble = imported.showPeekBubble && Settings.canDrawOverlays(this)
+                        showRecentApps = imported.showRecentApps && RecentApps.hasUsageAccess(this)
                         persist()
                         if (needsRestart) showRestartDialog = true
                     }
