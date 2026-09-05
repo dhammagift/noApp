@@ -16,6 +16,11 @@ import org.json.JSONObject
  * variable-length — array order IS the id, no separate "id" field on the wire.
  */
 object ConfigStore {
+    const val PEEK_SIZE_MIN = 0.75f
+    const val PEEK_SIZE_MAX = 2f
+    const val PEEK_ALPHA_MIN = 0.2f
+    const val PEEK_ALPHA_MAX = 1f
+
     private const val PREFS_NAME = "no_app_prefs"
     private const val KEY_CONFIG_JSON = "config_json"
 
@@ -39,6 +44,8 @@ object ConfigStore {
             .put("iconVariant", config.iconVariant)
             .put("showPeekBubble", config.showPeekBubble)
             .put("peekBubbleReturns", config.peekBubbleReturns)
+            .put("peekBubbleSize", config.peekBubbleSize.toDouble())
+            .put("peekBubbleDockAlpha", config.peekBubbleDockAlpha.toDouble())
             .put("showRecentApps", config.showRecentApps)
             .put("theme", config.theme.name)
             .toString()
@@ -70,6 +77,8 @@ object ConfigStore {
             iconVariant = root.optString("iconVariant", "default"),
             showPeekBubble = root.optBoolean("showPeekBubble", false),
             peekBubbleReturns = root.optBoolean("peekBubbleReturns", false),
+            peekBubbleSize = root.optDouble("peekBubbleSize", 1.0).toFloat().coerceIn(PEEK_SIZE_MIN, PEEK_SIZE_MAX),
+            peekBubbleDockAlpha = root.optDouble("peekBubbleDockAlpha", 0.55).toFloat().coerceIn(PEEK_ALPHA_MIN, PEEK_ALPHA_MAX),
             showRecentApps = root.optBoolean("showRecentApps", false),
             theme = runCatching { AppTheme.valueOf(root.optString("theme", AppTheme.SYSTEM.name)) }
                 .getOrDefault(AppTheme.SYSTEM)

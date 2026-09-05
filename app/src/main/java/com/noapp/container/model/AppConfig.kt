@@ -39,6 +39,11 @@ data class AppConfig(
     // normally turns showPeekBubble off for good (see QuickPickPeekOverlayService); with this
     // on, it's only gone until the next launch collapses the list again.
     val peekBubbleReturns: Boolean = false,
+    // Floating button size, as a multiplier of its default 48dp — also scales how much of it
+    // stays visible when tucked into a screen edge (see QuickPickPeekOverlayService).
+    val peekBubbleSize: Float = 1f,
+    // Opacity of the floating button while tucked into a screen edge.
+    val peekBubbleDockAlpha: Float = 0.55f,
     // LIST/MIX only, off by default (needs the user to separately grant Usage Access):
     // shows a compact icon-only row of recently-used apps above the configured items —
     // see recents/RecentApps.kt.

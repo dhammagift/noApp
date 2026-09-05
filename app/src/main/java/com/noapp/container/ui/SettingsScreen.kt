@@ -37,6 +37,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -48,6 +49,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -103,6 +105,8 @@ fun SettingsScreen(
     onIconVariantChanged: (String) -> Unit,
     onShowPeekBubbleChanged: (Boolean) -> Unit,
     onPeekBubbleReturnsChanged: (Boolean) -> Unit,
+    onPeekBubbleSizeChanged: (Float) -> Unit,
+    onPeekBubbleDockAlphaChanged: (Float) -> Unit,
     onShowRecentAppsChanged: (Boolean) -> Unit,
     onThemeChanged: (AppTheme) -> Unit,
     onBack: () -> Unit
@@ -342,6 +346,36 @@ fun SettingsScreen(
                     Switch(
                         checked = config.peekBubbleReturns,
                         onCheckedChange = onPeekBubbleReturnsChanged
+                    )
+                }
+            )
+            HorizontalDivider()
+            // Drafts are committed on release, not per tick: each commit persists the config and
+            // re-syncs the OS shortcuts, which is far too much for every pixel of a drag.
+            var sizeDraft by remember(config.peekBubbleSize) { mutableFloatStateOf(config.peekBubbleSize) }
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_peek_size)) },
+                supportingContent = {
+                    Column {
+                        Text(stringResource(R.string.settings_peek_size_hint))
+                        Slider(
+                            value = sizeDraft,
+                            onValueChange = { sizeDraft = it },
+                            onValueChangeFinished = { onPeekBubbleSizeChanged(sizeDraft) },
+                            valueRange = ConfigStore.PEEK_SIZE_MIN..ConfigStore.PEEK_SIZE_MAX
+                        )
+                    }
+                }
+            )
+            var alphaDraft by remember(config.peekBubbleDockAlpha) { mutableFloatStateOf(config.peekBubbleDockAlpha) }
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_peek_dock_alpha)) },
+                supportingContent = {
+                    Slider(
+                        value = alphaDraft,
+                        onValueChange = { alphaDraft = it },
+                        onValueChangeFinished = { onPeekBubbleDockAlphaChanged(alphaDraft) },
+                        valueRange = ConfigStore.PEEK_ALPHA_MIN..ConfigStore.PEEK_ALPHA_MAX
                     )
                 }
             )

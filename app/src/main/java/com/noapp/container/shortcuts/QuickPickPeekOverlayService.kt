@@ -49,7 +49,6 @@ private const val MAX_FLING_VELOCITY_DP_PER_S = 1500f
 // DOCK_PEEK_DP sliver on screen as the handle.
 private const val DOCK_ZONE_DP = 28
 private const val DOCK_PEEK_DP = 18
-private const val DOCK_ALPHA = 0.55f
 private const val DOCK_SCALE = 0.9f
 private const val DOCK_ANIM_MS = 300L
 private const val UNDOCK_ANIM_MS = 160L
@@ -113,16 +112,23 @@ class QuickPickPeekOverlayService : Service() {
             return START_NOT_STICKY
         }
 
+        // Settings > Button size scales the bubble and, with it, the docked sliver; Settings >
+        // Opacity when tucked is the docked alpha. Read once per show — the bubble is
+        // re-created on every collapse anyway, and Settings itself removes any showing one.
+        val config = ConfigStore.load(this)
+        val bubbleScale = config.peekBubbleSize
+        val dockAlpha = config.peekBubbleDockAlpha
+
         // See GearOverlayService.activeDisplayContext for why this isn't just DEFAULT_DISPLAY.
         val overlayContext = activeDisplayContext()
         val density = overlayContext.resources.displayMetrics.density
-        val sizePx = (BUBBLE_DP * density).toInt()
+        val sizePx = (BUBBLE_DP * bubbleScale * density).toInt()
         val marginPx = (MARGIN_DP * density).toInt()
         val tapSlopPx = (TAP_SLOP_DP * density)
         val trashSizePx = (TRASH_SIZE_DP * density).toInt()
         val trashActivateRadiusPx = TRASH_ACTIVATE_RADIUS_DP * density
         val dockZonePx = (DOCK_ZONE_DP * density).toInt()
-        val dockPeekPx = (DOCK_PEEK_DP * density).toInt()
+        val dockPeekPx = (DOCK_PEEK_DP * bubbleScale * density).toInt()
 
         val wm = overlayContext.getSystemService(WINDOW_SERVICE) as WindowManager
         windowManager = wm
@@ -167,7 +173,7 @@ class QuickPickPeekOverlayService : Service() {
         val view = roundIconView(overlayContext, sizePx, R.drawable.ic_list_bubble, 0xCC3C4043.toInt()).apply {
             contentDescription = context.getString(R.string.quick_pick_reopen_desc)
             if (dock != 0) {
-                alpha = DOCK_ALPHA
+                alpha = dockAlpha
                 scaleX = DOCK_SCALE
                 scaleY = DOCK_SCALE
             }
@@ -272,7 +278,7 @@ class QuickPickPeekOverlayService : Service() {
             if (side != 0) {
                 scroller.forceFinished(true)
                 dock = side
-                animateTo(dockedX(side), restY, DOCK_ALPHA, DOCK_SCALE, DOCK_ANIM_MS) { persistPosition() }
+                animateTo(dockedX(side), restY, dockAlpha, DOCK_SCALE, DOCK_ANIM_MS) { persistPosition() }
                 return
             }
             dock = 0
