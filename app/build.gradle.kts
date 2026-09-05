@@ -15,7 +15,7 @@ android {
         // The only version to edit. versionName is what people see; versionCode is Play's
         // internal ordering number, which must grow with every upload — derived here so it
         // can't be forgotten or collide: major*10000 + minor*100 + patch (0.5.1 -> 501).
-        val appVersion = "0.5.1"
+        val appVersion = "0.5.2"
         versionName = appVersion
         versionCode = appVersion.split(".").map { it.toInt() }.let { (major, minor, patch) -> major * 10000 + minor * 100 + patch }
     }
