@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -39,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -228,6 +230,20 @@ fun SettingsScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
                     }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        context.startActivity(
+                            Intent.createChooser(
+                                Intent(Intent.ACTION_SEND)
+                                    .setType("text/plain")
+                                    .putExtra(Intent.EXTRA_TEXT, context.getString(R.string.settings_share_text, GITHUB_URL)),
+                                null
+                            )
+                        )
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = stringResource(R.string.settings_share))
+                    }
                 }
             )
         }
@@ -331,6 +347,23 @@ fun SettingsScreen(
             )
             HorizontalDivider()
             ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_show_recent_apps)) },
+                supportingContent = { Text(stringResource(R.string.settings_show_recent_apps_hint)) },
+                trailingContent = {
+                    Switch(
+                        checked = config.showRecentApps,
+                        onCheckedChange = { turningOn ->
+                            when {
+                                !turningOn -> onShowRecentAppsChanged(false)
+                                RecentApps.hasUsageAccess(context) -> onShowRecentAppsChanged(true)
+                                else -> showUsageAccessExplainer = true
+                            }
+                        }
+                    )
+                }
+            )
+            HorizontalDivider()
+            ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_show_peek_bubble)) },
                 supportingContent = { Text(stringResource(R.string.settings_show_peek_bubble_hint)) },
                 trailingContent = {
@@ -396,23 +429,6 @@ fun SettingsScreen(
                 PeekBubblePreview(size = sizeDraft, alpha = alphaDraft, modifier = Modifier.padding(start = 12.dp))
             }
             HorizontalDivider()
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_show_recent_apps)) },
-                supportingContent = { Text(stringResource(R.string.settings_show_recent_apps_hint)) },
-                trailingContent = {
-                    Switch(
-                        checked = config.showRecentApps,
-                        onCheckedChange = { turningOn ->
-                            when {
-                                !turningOn -> onShowRecentAppsChanged(false)
-                                RecentApps.hasUsageAccess(context) -> onShowRecentAppsChanged(true)
-                                else -> showUsageAccessExplainer = true
-                            }
-                        }
-                    )
-                }
-            )
-            HorizontalDivider()
             val pinDefaultItem = stringResource(R.string.settings_pin_default_item)
             ListItem(
                 headlineContent = {
@@ -443,20 +459,6 @@ fun SettingsScreen(
             )
             HorizontalDivider()
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_share)) },
-                leadingContent = { Icon(Icons.Default.Share, contentDescription = null) },
-                modifier = Modifier.clickable {
-                    context.startActivity(
-                        Intent.createChooser(
-                            Intent(Intent.ACTION_SEND)
-                                .setType("text/plain")
-                                .putExtra(Intent.EXTRA_TEXT, context.getString(R.string.settings_share_text, GITHUB_URL)),
-                            null
-                        )
-                    )
-                }
-            )
-            ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_rate_app)) },
                 supportingContent = { Text(stringResource(R.string.settings_rate_app_hint)) },
                 leadingContent = { Icon(Icons.Default.Star, contentDescription = null) },
@@ -479,14 +481,21 @@ fun SettingsScreen(
                 }
             )
             HorizontalDivider()
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_backup)) },
-                modifier = Modifier.clickable { exportLauncher.launch("noapp-config.json") }
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_restore)) },
-                modifier = Modifier.clickable { importLauncher.launch(arrayOf("application/json")) }
-            )
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(onClick = { exportLauncher.launch("noapp-config.json") }, modifier = Modifier.weight(1f)) {
+                    Icon(painterResource(R.drawable.ic_backup), contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.settings_backup))
+                }
+                OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json")) }, modifier = Modifier.weight(1f)) {
+                    Icon(painterResource(R.drawable.ic_restore), contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.settings_restore))
+                }
+            }
             HorizontalDivider()
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_source_code)) },
@@ -580,7 +589,10 @@ private fun PeekBubblePreview(size: Float, alpha: Float, modifier: Modifier = Mo
             .width(116.dp)
             .height(220.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            // Darkest surface of the theme (near-black in dark, white in light) rather than
+            // surfaceVariant: the bubble's own grey blended into that in the dark theme.
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
     ) {
         PreviewBubble(bubble, alpha, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
         PreviewBubble(
