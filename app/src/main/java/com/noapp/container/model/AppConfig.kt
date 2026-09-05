@@ -35,6 +35,10 @@ data class AppConfig(
     // ConfigScreen's ModePickerDialog) would never run and the toggle would just silently do
     // nothing until the user noticed and re-toggled it themselves.
     val showPeekBubble: Boolean = false,
+    // Only meaningful with showPeekBubble: dragging the floating button onto the ✕ target
+    // normally turns showPeekBubble off for good (see QuickPickPeekOverlayService); with this
+    // on, it's only gone until the next launch collapses the list again.
+    val peekBubbleReturns: Boolean = false,
     // LIST/MIX only, off by default (needs the user to separately grant Usage Access):
     // shows a compact icon-only row of recently-used apps above the configured items —
     // see recents/RecentApps.kt.

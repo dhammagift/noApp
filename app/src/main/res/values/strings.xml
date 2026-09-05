@@ -15,6 +15,8 @@
     <string name="settings_use_all_slots_off">I keep one slot reserved for a Configure entry.</string>
     <string name="settings_show_peek_bubble">Floating button in List and Mix modes</string>
     <string name="settings_show_peek_bubble_hint">I collapse the list into an on-screen button when you swipe it away, instead of closing it.</string>
+    <string name="settings_peek_bubble_returns">Bring the button back after ✕</string>
+    <string name="settings_peek_bubble_returns_hint">Off: once you drag the button onto ✕, it stays gone until you turn it on here again. On: it\'s only gone until the next time you open me.</string>
     <string name="settings_show_recent_apps">Recent apps in List and Mix modes</string>
     <string name="settings_show_recent_apps_hint">If you want to see recently used apps separately in the list, I\'ll need Usage access permission.</string>
     <string name="settings_usage_access_dialog_title">Usage access</string>

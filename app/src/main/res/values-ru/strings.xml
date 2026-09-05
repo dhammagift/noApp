@@ -12,6 +12,8 @@
     <string name="settings_use_all_slots_off">Я оставляю один слот под «Настройки».</string>
     <string name="settings_show_peek_bubble">Плавающая кнопка в режимах List и Mix</string>
     <string name="settings_show_peek_bubble_hint">Я сворачиваю список в кнопку на экране, если вы смахнёте его вниз, вместо того чтобы просто закрыть.</string>
+    <string name="settings_peek_bubble_returns">Возвращать кнопку после ✕</string>
+    <string name="settings_peek_bubble_returns_hint">Выкл: перетащили кнопку на ✕ — её не будет, пока снова не включите здесь. Вкл: её не будет только до следующего открытия.</string>
     <string name="settings_show_recent_apps">Недавние приложения в режимах List и Mix</string>
     <string name="settings_show_recent_apps_hint">Если вы хотите видеть недавние приложения отдельно в списке, то мне нужно будет разрешение usage access.</string>
     <string name="settings_usage_access_dialog_title">Доступ к использованию</string>

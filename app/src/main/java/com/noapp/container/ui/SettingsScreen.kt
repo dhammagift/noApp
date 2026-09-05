@@ -102,6 +102,7 @@ fun SettingsScreen(
     onUseAllSlotsInDirectModeChanged: (Boolean) -> Unit,
     onIconVariantChanged: (String) -> Unit,
     onShowPeekBubbleChanged: (Boolean) -> Unit,
+    onPeekBubbleReturnsChanged: (Boolean) -> Unit,
     onShowRecentAppsChanged: (Boolean) -> Unit,
     onThemeChanged: (AppTheme) -> Unit,
     onBack: () -> Unit
@@ -330,6 +331,17 @@ fun SettingsScreen(
                                 else -> showPeekOverlayExplainer = true
                             }
                         }
+                    )
+                }
+            )
+            HorizontalDivider()
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_peek_bubble_returns)) },
+                supportingContent = { Text(stringResource(R.string.settings_peek_bubble_returns_hint)) },
+                trailingContent = {
+                    Switch(
+                        checked = config.peekBubbleReturns,
+                        onCheckedChange = onPeekBubbleReturnsChanged
                     )
                 }
             )

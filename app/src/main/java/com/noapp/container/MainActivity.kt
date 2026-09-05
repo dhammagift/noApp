@@ -91,6 +91,7 @@ class MainActivity : ComponentActivity() {
             var useAllSlotsInDirectMode by remember { mutableStateOf(initialConfig.useAllSlotsInDirectMode) }
             var iconVariant by remember { mutableStateOf(initialConfig.iconVariant) }
             var showPeekBubble by remember { mutableStateOf(initialConfig.showPeekBubble) }
+            var peekBubbleReturns by remember { mutableStateOf(initialConfig.peekBubbleReturns) }
             var showRecentApps by remember { mutableStateOf(initialConfig.showRecentApps) }
             var theme by remember { mutableStateOf(initialConfig.theme) }
             // The one pending Snackbar message, if any — shown by whichever screen is up on its
@@ -107,7 +108,7 @@ class MainActivity : ComponentActivity() {
             // deliberately NOT done here is touching the launcher alias for an icon change — see
             // reconcileLauncherIconOrRestart for why that can only ever happen on a fresh launch.
             fun persist() {
-                val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps, theme)
+                val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, peekBubbleReturns, showRecentApps, theme)
                 ConfigStore.save(this, config)
                 ShortcutSync.sync(this, mode, slots.toList(), useAllSlotsInDirectMode)
                 DebugLog.log(this, TAG, "persist: done mode=$mode variant=$iconVariant")
@@ -123,6 +124,7 @@ class MainActivity : ComponentActivity() {
                         useAllSlotsInDirectMode = useAllSlotsInDirectMode,
                         iconVariant = iconVariant,
                         showPeekBubble = showPeekBubble,
+                        peekBubbleReturns = peekBubbleReturns,
                         showRecentApps = showRecentApps,
                         theme = theme,
                         screen = screen,
@@ -152,6 +154,10 @@ class MainActivity : ComponentActivity() {
                             showPeekBubble = value
                             persist()
                         },
+                        onPeekBubbleReturnsChanged = { value ->
+                            peekBubbleReturns = value
+                            persist()
+                        },
                         onShowRecentAppsChanged = { value ->
                             showRecentApps = value
                             persist()
@@ -174,6 +180,7 @@ class MainActivity : ComponentActivity() {
                             useAllSlotsInDirectMode = imported.useAllSlotsInDirectMode && Settings.canDrawOverlays(this)
                             iconVariant = imported.iconVariant
                             showPeekBubble = imported.showPeekBubble && Settings.canDrawOverlays(this)
+                            peekBubbleReturns = imported.peekBubbleReturns
                             showRecentApps = imported.showRecentApps && RecentApps.hasUsageAccess(this)
                             theme = imported.theme
                             persist()
@@ -352,6 +359,7 @@ private fun NoAppRoot(
     useAllSlotsInDirectMode: Boolean,
     iconVariant: String,
     showPeekBubble: Boolean,
+    peekBubbleReturns: Boolean,
     showRecentApps: Boolean,
     theme: AppTheme,
     screen: Screen,
@@ -363,6 +371,7 @@ private fun NoAppRoot(
     onUseAllSlotsInDirectModeChanged: (Boolean) -> Unit,
     onIconVariantChanged: (String) -> Unit,
     onShowPeekBubbleChanged: (Boolean) -> Unit,
+    onPeekBubbleReturnsChanged: (Boolean) -> Unit,
     onShowRecentAppsChanged: (Boolean) -> Unit,
     onThemeChanged: (AppTheme) -> Unit,
     onConfigImported: (AppConfig) -> Unit
@@ -417,13 +426,14 @@ private fun NoAppRoot(
         }
 
         is Screen.Settings -> SettingsScreen(
-            config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, showRecentApps, theme),
+            config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, peekBubbleReturns, showRecentApps, theme),
             hint = hint,
             onHintShown = onHintShown,
             onImportConfig = onConfigImported,
             onUseAllSlotsInDirectModeChanged = onUseAllSlotsInDirectModeChanged,
             onIconVariantChanged = onIconVariantChanged,
             onShowPeekBubbleChanged = onShowPeekBubbleChanged,
+            onPeekBubbleReturnsChanged = onPeekBubbleReturnsChanged,
             onShowRecentAppsChanged = onShowRecentAppsChanged,
             onThemeChanged = onThemeChanged,
             onBack = { onScreenChange(Screen.Config) }

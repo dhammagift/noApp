@@ -1,5 +1,6 @@
 package com.noapp.container.shortcuts
 
+import android.animation.ValueAnimator
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -15,6 +16,7 @@ import android.view.MotionEvent
 import android.view.VelocityTracker
 import android.view.View
 import android.view.WindowManager
+import android.view.animation.PathInterpolator
 import android.widget.ImageView
 import android.widget.OverScroller
 import androidx.core.content.ContextCompat
@@ -29,6 +31,9 @@ import kotlin.math.roundToInt
 private const val PREFS_NAME = "no_app_prefs"
 private const val KEY_PEEK_X = "peek_bubble_x"
 private const val KEY_PEEK_Y = "peek_bubble_y"
+// 0 = free-floating at KEY_PEEK_X; -1 / 1 = tucked into the left / right screen edge (X is
+// then derived from the edge, so it survives a screen-size change).
+private const val KEY_PEEK_DOCK = "peek_bubble_dock"
 private const val BUBBLE_DP = 48
 private const val MARGIN_DP = 20
 private const val TAP_SLOP_DP = 8
@@ -40,6 +45,14 @@ private const val TRASH_ACTIVATE_RADIUS_DP = 56
 // (see MAX_FLING_VELOCITY_DP_PER_S), even a hard flick only ever travels a small distance.
 private const val FLING_FRICTION = 0.09f
 private const val MAX_FLING_VELOCITY_DP_PER_S = 1500f
+// Edge docking: coming to rest this close to a side edge tucks the bubble into it, leaving a
+// DOCK_PEEK_DP sliver on screen as the handle.
+private const val DOCK_ZONE_DP = 28
+private const val DOCK_PEEK_DP = 18
+private const val DOCK_ALPHA = 0.55f
+private const val DOCK_SCALE = 0.9f
+private const val DOCK_ANIM_MS = 300L
+private const val UNDOCK_ANIM_MS = 160L
 
 /**
  * MIX/LIST mode's collapsed-list affordance: a small draggable button drawn as a
@@ -48,7 +61,8 @@ private const val MAX_FLING_VELOCITY_DP_PER_S = 1500f
  * any other app the user switches to), instead of disappearing the moment
  * QuickPickActivity itself isn't the foreground window. Never auto-dismisses
  * (unlike GearOverlayService): it sits wherever it's dropped until tapped (reopens
- * the list) or dragged onto the red drop target (removes it for good).
+ * the list) or dragged onto the red drop target (removes it — for good, or just
+ * until the next launch, per AppConfig.peekBubbleReturns).
  *
  * Only started when Settings.canDrawOverlays() is already true — see the call site
  * in QuickPickSheet.kt, which falls back to an in-Activity peek otherwise.
@@ -56,7 +70,11 @@ private const val MAX_FLING_VELOCITY_DP_PER_S = 1500f
  * Dragging carries real momentum on release (OverScroller, the same friction-based
  * fling used for scrolling) instead of snapping to a screen edge — the user should be
  * free to leave it wherever they actually let go, just decelerating naturally rather
- * than stopping dead.
+ * than stopping dead. The one exception is the side edges: coming to rest against
+ * (or being thrown at) one tucks the bubble into it — most of it slides off screen,
+ * it fades and shrinks a little, and a thin sliver stays as the handle. It then takes
+ * no room and still opens the list on a tap; dragging it pulls it back out. Docked
+ * state is remembered, so the handle is where it was left next time too.
  */
 class QuickPickPeekOverlayService : Service() {
     private var windowManager: WindowManager? = null
@@ -103,6 +121,8 @@ class QuickPickPeekOverlayService : Service() {
         val tapSlopPx = (TAP_SLOP_DP * density)
         val trashSizePx = (TRASH_SIZE_DP * density).toInt()
         val trashActivateRadiusPx = TRASH_ACTIVATE_RADIUS_DP * density
+        val dockZonePx = (DOCK_ZONE_DP * density).toInt()
+        val dockPeekPx = (DOCK_PEEK_DP * density).toInt()
 
         val wm = overlayContext.getSystemService(WINDOW_SERVICE) as WindowManager
         windowManager = wm
@@ -119,11 +139,15 @@ class QuickPickPeekOverlayService : Service() {
         }
         val maxX = (screenWidthPx - sizePx).coerceAtLeast(0)
         val maxY = (screenHeightPx - sizePx).coerceAtLeast(0)
+        // Window X when tucked into an edge — mostly off screen (FLAG_LAYOUT_NO_LIMITS allows
+        // it), with dockPeekPx of it left showing.
+        fun dockedX(side: Int): Int = if (side < 0) dockPeekPx - sizePx else screenWidthPx - dockPeekPx
 
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        var dock = prefs.getInt(KEY_PEEK_DOCK, 0).coerceIn(-1, 1)
         val defaultX = maxX - marginPx
         val defaultY = maxY - marginPx * 3 // a bit above the very bottom edge, clear of gesture nav
-        val startX = prefs.getInt(KEY_PEEK_X, defaultX).coerceIn(0, maxX)
+        val startX = if (dock != 0) dockedX(dock) else prefs.getInt(KEY_PEEK_X, defaultX).coerceIn(0, maxX)
         val startY = prefs.getInt(KEY_PEEK_Y, defaultY).coerceIn(0, maxY)
 
         val params = WindowManager.LayoutParams(
@@ -142,6 +166,11 @@ class QuickPickPeekOverlayService : Service() {
 
         val view = roundIconView(overlayContext, sizePx, R.drawable.ic_list_bubble, 0xCC3C4043.toInt()).apply {
             contentDescription = context.getString(R.string.quick_pick_reopen_desc)
+            if (dock != 0) {
+                alpha = DOCK_ALPHA
+                scaleX = DOCK_SCALE
+                scaleY = DOCK_SCALE
+            }
         }
 
         // Drop target for drag-to-remove, added only while an actual drag is in progress
@@ -178,19 +207,75 @@ class QuickPickPeekOverlayService : Service() {
         val scroller = OverScroller(overlayContext).apply { setFriction(FLING_FRICTION) }
         val maxFlingVelocityPx = MAX_FLING_VELOCITY_DP_PER_S * density
         var velocityTracker: VelocityTracker? = null
+        var animator: ValueAnimator? = null
+        val easeOut = PathInterpolator(0.2f, 0f, 0f, 1f)
 
         fun removeTrashView() {
             trashView?.let { runCatching { wm.removeView(it) } }
             trashView = null
         }
 
+        fun persistPosition() {
+            prefs.edit()
+                .putInt(KEY_PEEK_X, params.x.coerceIn(0, maxX))
+                .putInt(KEY_PEEK_Y, params.y)
+                .putInt(KEY_PEEK_DOCK, dock)
+                .apply()
+        }
+
+        // One animation for position (window params) and look (view alpha/scale) together —
+        // the window can't be animated by the view system, so it's driven by hand.
+        fun animateTo(targetX: Int, targetY: Int, targetAlpha: Float, targetScale: Float, durationMs: Long, onEnd: () -> Unit) {
+            animator?.cancel()
+            val fromX = params.x
+            val fromY = params.y
+            val fromAlpha = view.alpha
+            val fromScale = view.scaleX
+            animator = ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = durationMs
+                interpolator = easeOut
+                addUpdateListener { a ->
+                    val t = a.animatedValue as Float
+                    params.x = (fromX + (targetX - fromX) * t).roundToInt()
+                    params.y = (fromY + (targetY - fromY) * t).roundToInt()
+                    view.alpha = fromAlpha + (targetAlpha - fromAlpha) * t
+                    val s = fromScale + (targetScale - fromScale) * t
+                    view.scaleX = s
+                    view.scaleY = s
+                    runCatching { wm.updateViewLayout(view, params) }
+                }
+                addListener(object : android.animation.AnimatorListenerAdapter() {
+                    private var cancelled = false
+                    override fun onAnimationCancel(animation: android.animation.Animator) { cancelled = true }
+                    override fun onAnimationEnd(animation: android.animation.Animator) { if (!cancelled) onEnd() }
+                })
+                start()
+            }
+        }
+
         // Real momentum instead of a forced snap: whatever speed the finger was moving at
         // release keeps carrying the bubble, decelerating via the same friction curve
         // Android uses for scroll flings, until it comes to rest on its own — wherever
-        // that happens to be, clamped to the screen but never pulled toward an edge.
-        fun flingToRest(velocityX: Int, velocityY: Int) {
+        // that happens to be, clamped to the screen. Unless that resting point is against a
+        // side edge (a throw at the edge lands there too): then, in one continuous motion,
+        // it tucks into the edge instead — see the class comment.
+        fun settle(velocityX: Int, velocityY: Int) {
             scroller.forceFinished(true)
             scroller.fling(params.x, params.y, velocityX, velocityY, 0, maxX, 0, maxY)
+            val restX = scroller.finalX
+            val restY = scroller.finalY
+            val side = when {
+                restX <= dockZonePx -> -1
+                restX >= maxX - dockZonePx -> 1
+                else -> 0
+            }
+            if (side != 0) {
+                scroller.forceFinished(true)
+                dock = side
+                animateTo(dockedX(side), restY, DOCK_ALPHA, DOCK_SCALE, DOCK_ANIM_MS) { persistPosition() }
+                return
+            }
+            dock = 0
             fun step() {
                 if (scroller.computeScrollOffset()) {
                     params.x = scroller.currX
@@ -198,7 +283,7 @@ class QuickPickPeekOverlayService : Service() {
                     runCatching { wm.updateViewLayout(view, params) }
                     view.postOnAnimation(::step)
                 } else {
-                    prefs.edit().putInt(KEY_PEEK_X, params.x).putInt(KEY_PEEK_Y, params.y).apply()
+                    persistPosition()
                 }
             }
             step()
@@ -207,6 +292,7 @@ class QuickPickPeekOverlayService : Service() {
         view.setOnTouchListener { _, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    animator?.cancel()
                     scroller.forceFinished(true)
                     velocityTracker?.recycle()
                     velocityTracker = VelocityTracker.obtain().apply { addMovement(event) }
@@ -224,6 +310,15 @@ class QuickPickPeekOverlayService : Service() {
                     val dy = event.rawY - downRawY
                     if (!dragging && (abs(dx) > tapSlopPx || abs(dy) > tapSlopPx)) {
                         dragging = true
+                        if (dock != 0) {
+                            // Pulling it out of the edge: back to full size and opacity, and
+                            // re-based so it lands fully on screen and follows the finger 1:1
+                            // from there (rather than only catching up once the finger has
+                            // travelled the hidden width).
+                            dock = 0
+                            downParamX = params.x.coerceIn(0, maxX) - dx.roundToInt()
+                            view.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(UNDOCK_ANIM_MS).start()
+                        }
                         if (trashView == null) {
                             val newTrash = roundIconView(overlayContext, trashSizePx, R.drawable.ic_close_bubble, 0xE6D32F2F.toInt()).apply {
                                 contentDescription = context.getString(R.string.quick_pick_remove_desc)
@@ -256,14 +351,18 @@ class QuickPickPeekOverlayService : Service() {
                     if (dragging) {
                         removeTrashView()
                         if (overTrash) {
-                            // Dragging to the trash is an explicit "stop showing this" — persist
-                            // it, or the bubble just comes back on the next minimize/launch and
-                            // the removal reads as broken rather than intentional.
-                            runCatching { ConfigStore.save(this, ConfigStore.load(this).copy(showPeekBubble = false)) }
+                            // Dragging to the trash is an explicit "stop showing this". By default
+                            // that's persisted (or the bubble just comes back on the next minimize
+                            // and the removal reads as broken); with peekBubbleReturns on, it's
+                            // only gone until the next launch collapses the list again.
+                            runCatching {
+                                val config = ConfigStore.load(this)
+                                if (!config.peekBubbleReturns) ConfigStore.save(this, config.copy(showPeekBubble = false))
+                            }
                             stopSelf()
                         } else {
                             velocityTracker?.computeCurrentVelocity(1000, maxFlingVelocityPx)
-                            flingToRest(
+                            settle(
                                 velocityTracker?.xVelocity?.roundToInt() ?: 0,
                                 velocityTracker?.yVelocity?.roundToInt() ?: 0
                             )
@@ -299,8 +398,8 @@ class QuickPickPeekOverlayService : Service() {
         /**
          * Escape hatch in case the bubble ever ends up somewhere the user can't get back to
          * (e.g. left stranded after a display/orientation change while showing): forgets the
-         * saved position — the next bubble starts fresh at the default corner — and removes
-         * any bubble showing right now. Called on entering and leaving Settings.
+         * saved position and docking — the next bubble starts fresh at the default corner —
+         * and removes any bubble showing right now. Called on entering and leaving Settings.
          */
         fun resetSavedPosition(context: Context) {
             context.stopService(Intent(context, QuickPickPeekOverlayService::class.java))
@@ -308,6 +407,7 @@ class QuickPickPeekOverlayService : Service() {
                 .edit()
                 .remove(KEY_PEEK_X)
                 .remove(KEY_PEEK_Y)
+                .remove(KEY_PEEK_DOCK)
                 .apply()
         }
     }
