@@ -1,15 +1,29 @@
 name: Build and Release
 
+# Three ways in, two outcomes:
+#   - push to any branch            -> build + signed APK/AAB as a downloadable workflow
+#                                      artifact (run's Summary page). No tag, no Release.
+#   - "Run workflow" w/o a version  -> same as above, for any ref you pick.
+#   - push a vX.Y.Z tag, or
+#     "Run workflow" with a version -> the real thing: a GitHub Release with the files attached.
 on:
   push:
+    branches:
+      - '**'
     tags:
       - 'v*'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (optional, e.g., v1.0.2)'
+        description: 'Release version (optional, e.g., v1.0.2). Leave empty for just a build artifact.'
         required: false
         type: string
+
+# A newer push to the same branch supersedes a build still running for it; tags are unique
+# refs, so releases are never cancelled by this.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -77,12 +91,12 @@ jobs:
           mv "${{ steps.sign_app.outputs.signedReleaseFile }}" NotApp.apk
           mv "${{ steps.sign_bundle.outputs.signedReleaseFile }}" NotApp.aab
 
-      # Manual "Run workflow" with no version filled in: just hand back the signed
-      # APK/AAB as a downloadable workflow artifact (from the run's Summary page) —
+      # Branch push, or manual "Run workflow" with no version filled in: just hand back the
+      # signed APK/AAB as a downloadable workflow artifact (from the run's Summary page) —
       # no tag, no GitHub Release, nothing permanent. For "let me see what this
       # branch/commit builds into" without cutting a version.
       - name: Upload build artifacts
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.version == ''
+        if: github.ref_type != 'tag' && (github.event_name != 'workflow_dispatch' || github.event.inputs.version == '')
         uses: actions/upload-artifact@v4
         with:
           name: NotApp-${{ github.sha }}
@@ -94,7 +108,7 @@ jobs:
       # Real release: either a `vX.Y.Z` tag was pushed, or "Run workflow" was given
       # an explicit version to cut a release under.
       - name: Create Release
-        if: github.event_name != 'workflow_dispatch' || github.event.inputs.version != ''
+        if: github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && github.event.inputs.version != '')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref_name }}
