@@ -27,6 +27,7 @@ import com.noapp.container.shortcuts.ActionDispatcher
 import com.noapp.container.shortcuts.EXTRA_OPEN_CONFIG
 import com.noapp.container.shortcuts.EXTRA_SLOT_ID
 import com.noapp.container.shortcuts.GearOverlayService
+import com.noapp.container.shortcuts.QuickPickPeekOverlayService
 import com.noapp.container.shortcuts.ShortcutSync
 import com.noapp.container.ui.ConfigScreen
 import com.noapp.container.ui.CrashReportScreen
@@ -351,9 +352,26 @@ class MainActivity : ComponentActivity() {
         DebugLog.log(this, TAG, "onPause hash=${System.identityHashCode(this)}")
     }
 
+    override fun onStart() {
+        super.onStart()
+        // Back in front (Recents, the launcher icon while Config was still open): the bubble is
+        // the "Not App is in the background" handle, so it goes away while we're on screen.
+        stopService(Intent(this, QuickPickPeekOverlayService::class.java))
+    }
+
     override fun onStop() {
         super.onStop()
         DebugLog.log(this, TAG, "onStop hash=${System.identityHashCode(this)} isFinishing=$isFinishing")
+        // Leaving the app from Config/Settings by any route that doesn't close it (Home, Recents,
+        // another app, a system Settings page we opened) leaves the floating button behind in
+        // LIST/MIX, same as leaving the list sheet does — the list should be one tap away no
+        // matter how the app lost the foreground. Not when finishing: a MIX dispatch finishes
+        // this Activity right after starting the sheet, which manages the bubble itself.
+        if (isFinishing || isChangingConfigurations) return
+        val config = ConfigStore.load(this)
+        if ((config.mode == AppMode.LIST || config.mode == AppMode.MIX) && config.showPeekBubble && Settings.canDrawOverlays(this)) {
+            startService(Intent(this, QuickPickPeekOverlayService::class.java))
+        }
     }
 
     override fun onDestroy() {

@@ -11,14 +11,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -57,9 +63,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.ShortcutManagerCompat
 import com.noapp.container.DebugLog
@@ -351,37 +359,42 @@ fun SettingsScreen(
             )
             HorizontalDivider()
             // Drafts are committed on release, not per tick: each commit persists the config and
-            // re-syncs the OS shortcuts, which is far too much for every pixel of a drag.
+            // re-syncs the OS shortcuts, which is far too much for every pixel of a drag. The
+            // preview alongside follows the drafts, so what you see is what you'll get.
             var sizeDraft by remember(config.peekBubbleSize) { mutableFloatStateOf(config.peekBubbleSize) }
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_peek_size)) },
-                supportingContent = {
-                    Column {
-                        Text(stringResource(R.string.settings_peek_size_hint))
-                        Slider(
-                            value = sizeDraft,
-                            onValueChange = { sizeDraft = it },
-                            onValueChangeFinished = { onPeekBubbleSizeChanged(sizeDraft) },
-                            valueRange = ConfigStore.PEEK_SIZE_MIN..ConfigStore.PEEK_SIZE_MAX
-                        )
-                    }
-                }
-            )
             var alphaDraft by remember(config.peekBubbleAlpha) { mutableFloatStateOf(config.peekBubbleAlpha) }
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_peek_alpha)) },
-                supportingContent = {
-                    Column {
-                        Text(stringResource(R.string.settings_peek_alpha_hint))
-                        Slider(
+            Row(
+                Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.settings_peek_size), style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        stringResource(R.string.settings_peek_size_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Slider(
+                        value = sizeDraft,
+                        onValueChange = { sizeDraft = it },
+                        onValueChangeFinished = { onPeekBubbleSizeChanged(sizeDraft) },
+                        valueRange = ConfigStore.PEEK_SIZE_MIN..ConfigStore.PEEK_SIZE_MAX
+                    )
+                    Text(stringResource(R.string.settings_peek_alpha), style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        stringResource(R.string.settings_peek_alpha_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Slider(
                         value = alphaDraft,
                         onValueChange = { alphaDraft = it },
-                            onValueChangeFinished = { onPeekBubbleAlphaChanged(alphaDraft) },
-                            valueRange = ConfigStore.PEEK_ALPHA_MIN..ConfigStore.PEEK_ALPHA_MAX
-                        )
-                    }
+                        onValueChangeFinished = { onPeekBubbleAlphaChanged(alphaDraft) },
+                        valueRange = ConfigStore.PEEK_ALPHA_MIN..ConfigStore.PEEK_ALPHA_MAX
+                    )
                 }
-            )
+                PeekBubblePreview(size = sizeDraft, alpha = alphaDraft, modifier = Modifier.padding(start = 12.dp))
+            }
             HorizontalDivider()
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_show_recent_apps)) },
@@ -552,3 +565,52 @@ fun SettingsScreen(
         )
     }
 }
+
+/**
+ * Live preview of the floating button at the drafted size/opacity — free-floating up top, and
+ * tucked into the preview's own right edge below, the way it docks on the real screen (same
+ * sliver width, same 90% scale and 60% opacity ratio as QuickPickPeekOverlayService).
+ */
+@Composable
+private fun PeekBubblePreview(size: Float, alpha: Float, modifier: Modifier = Modifier) {
+    val bubble = (PEEK_BUBBLE_BASE_DP * size).dp
+    val peek = (PEEK_DOCK_PEEK_BASE_DP * size).dp
+    Box(
+        modifier
+            .width(116.dp)
+            .height(220.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        PreviewBubble(bubble, alpha, Modifier.align(Alignment.TopCenter).padding(top = 12.dp))
+        PreviewBubble(
+            bubble,
+            alpha * PEEK_DOCK_ALPHA_FACTOR,
+            Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 12.dp)
+                .offset(x = bubble - peek)
+                .graphicsLayer { scaleX = PEEK_DOCK_SCALE; scaleY = PEEK_DOCK_SCALE }
+        )
+    }
+}
+
+@Composable
+private fun PreviewBubble(size: Dp, alpha: Float, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .size(size)
+            .graphicsLayer { this.alpha = alpha }
+            .background(Color(0xCC3C4043), CircleShape)
+            .padding(size * 0.24f),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(painterResource(R.drawable.ic_list_bubble), contentDescription = null, tint = Color.White, modifier = Modifier.fillMaxSize())
+    }
+}
+
+// Mirrors QuickPickPeekOverlayService's geometry so the preview is honest.
+private const val PEEK_BUBBLE_BASE_DP = 48
+private const val PEEK_DOCK_PEEK_BASE_DP = 18
+private const val PEEK_DOCK_SCALE = 0.9f
+private const val PEEK_DOCK_ALPHA_FACTOR = 0.6f

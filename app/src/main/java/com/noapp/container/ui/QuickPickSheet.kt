@@ -151,6 +151,16 @@ fun QuickPickSheet(
     }
     BackHandler(onBack = ::requestDismiss)
 
+    // Launching something from the list is also "leaving" it: the bubble comes back so the
+    // list stays one tap away over whatever just opened, same as swiping the sheet away would.
+    // (No exit animation — the launched app is already covering us.)
+    fun leaveWithPeek() {
+        if (allowPeek && Settings.canDrawOverlays(context)) {
+            context.startService(Intent(context, QuickPickPeekOverlayService::class.java))
+        }
+        (context as? Activity)?.finish()
+    }
+
     val maxListHeight = (LocalConfiguration.current.screenHeightDp * 0.6f).dp
 
     Box(Modifier.fillMaxSize()) {
@@ -217,7 +227,7 @@ fun QuickPickSheet(
                         RecentAppsIcons(
                             apps = recentApps,
                             modifier = Modifier.weight(1f),
-                            onLaunched = { (context as? Activity)?.finish() }
+                            onLaunched = ::leaveWithPeek
                         )
                         VerticalDivider(Modifier.height(24.dp).padding(horizontal = 4.dp))
                     } else {
@@ -242,7 +252,7 @@ fun QuickPickSheet(
                             leadingContent = { SlotIcon(slot, size = 32.dp) },
                             modifier = Modifier.clickable {
                                 ActionDispatcher.execute(context, slot, sharedText)
-                                (context as? Activity)?.finish()
+                                leaveWithPeek()
                             }
                         )
                     }
