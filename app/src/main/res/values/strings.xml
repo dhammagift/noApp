@@ -19,7 +19,8 @@
     <string name="settings_peek_bubble_returns_hint">Off: once you drag the button onto ✕, it stays gone until you turn it on here again. On: it\'s only gone until the next time you open me.</string>
     <string name="settings_peek_size">Button size</string>
     <string name="settings_peek_size_hint">Also how much of it stays visible when tucked into a screen edge.</string>
-    <string name="settings_peek_dock_alpha">Opacity when tucked into an edge</string>
+    <string name="settings_peek_alpha">Button opacity</string>
+    <string name="settings_peek_alpha_hint">Tucked into a screen edge, it fades a bit further on its own.</string>
     <string name="settings_show_recent_apps">Recent apps in List and Mix modes</string>
     <string name="settings_show_recent_apps_hint">If you want to see recently used apps separately in the list, I\'ll need Usage access permission.</string>
     <string name="settings_usage_access_dialog_title">Usage access</string>

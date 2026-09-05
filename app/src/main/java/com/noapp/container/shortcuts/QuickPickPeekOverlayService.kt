@@ -50,6 +50,8 @@ private const val MAX_FLING_VELOCITY_DP_PER_S = 1500f
 private const val DOCK_ZONE_DP = 28
 private const val DOCK_PEEK_DP = 18
 private const val DOCK_SCALE = 0.9f
+// Docked opacity relative to the configured button opacity — out of the way means fainter too.
+private const val DOCK_ALPHA_FACTOR = 0.6f
 private const val DOCK_ANIM_MS = 300L
 private const val UNDOCK_ANIM_MS = 160L
 
@@ -113,11 +115,13 @@ class QuickPickPeekOverlayService : Service() {
         }
 
         // Settings > Button size scales the bubble and, with it, the docked sliver; Settings >
-        // Opacity when tucked is the docked alpha. Read once per show — the bubble is
-        // re-created on every collapse anyway, and Settings itself removes any showing one.
+        // Button opacity is the free-floating alpha, and docked is a fixed fraction of that.
+        // Read once per show — the bubble is re-created on every collapse anyway, and Settings
+        // itself removes any showing one.
         val config = ConfigStore.load(this)
         val bubbleScale = config.peekBubbleSize
-        val dockAlpha = config.peekBubbleDockAlpha
+        val bubbleAlpha = config.peekBubbleAlpha
+        val dockAlpha = bubbleAlpha * DOCK_ALPHA_FACTOR
 
         // See GearOverlayService.activeDisplayContext for why this isn't just DEFAULT_DISPLAY.
         val overlayContext = activeDisplayContext()
@@ -172,6 +176,7 @@ class QuickPickPeekOverlayService : Service() {
 
         val view = roundIconView(overlayContext, sizePx, R.drawable.ic_list_bubble, 0xCC3C4043.toInt()).apply {
             contentDescription = context.getString(R.string.quick_pick_reopen_desc)
+            alpha = bubbleAlpha
             if (dock != 0) {
                 alpha = dockAlpha
                 scaleX = DOCK_SCALE
@@ -323,7 +328,7 @@ class QuickPickPeekOverlayService : Service() {
                             // travelled the hidden width).
                             dock = 0
                             downParamX = params.x.coerceIn(0, maxX) - dx.roundToInt()
-                            view.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(UNDOCK_ANIM_MS).start()
+                            view.animate().alpha(bubbleAlpha).scaleX(1f).scaleY(1f).setDuration(UNDOCK_ANIM_MS).start()
                         }
                         if (trashView == null) {
                             val newTrash = roundIconView(overlayContext, trashSizePx, R.drawable.ic_close_bubble, 0xE6D32F2F.toInt()).apply {

@@ -45,7 +45,7 @@ object ConfigStore {
             .put("showPeekBubble", config.showPeekBubble)
             .put("peekBubbleReturns", config.peekBubbleReturns)
             .put("peekBubbleSize", config.peekBubbleSize.toDouble())
-            .put("peekBubbleDockAlpha", config.peekBubbleDockAlpha.toDouble())
+            .put("peekBubbleAlpha", config.peekBubbleAlpha.toDouble())
             .put("showRecentApps", config.showRecentApps)
             .put("theme", config.theme.name)
             .toString()
@@ -78,7 +78,7 @@ object ConfigStore {
             showPeekBubble = root.optBoolean("showPeekBubble", false),
             peekBubbleReturns = root.optBoolean("peekBubbleReturns", false),
             peekBubbleSize = root.optDouble("peekBubbleSize", 1.0).toFloat().coerceIn(PEEK_SIZE_MIN, PEEK_SIZE_MAX),
-            peekBubbleDockAlpha = root.optDouble("peekBubbleDockAlpha", 0.55).toFloat().coerceIn(PEEK_ALPHA_MIN, PEEK_ALPHA_MAX),
+            peekBubbleAlpha = root.optDouble("peekBubbleAlpha", 0.9).toFloat().coerceIn(PEEK_ALPHA_MIN, PEEK_ALPHA_MAX),
             showRecentApps = root.optBoolean("showRecentApps", false),
             theme = runCatching { AppTheme.valueOf(root.optString("theme", AppTheme.SYSTEM.name)) }
                 .getOrDefault(AppTheme.SYSTEM)

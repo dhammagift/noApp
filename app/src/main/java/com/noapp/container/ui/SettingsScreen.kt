@@ -106,7 +106,7 @@ fun SettingsScreen(
     onShowPeekBubbleChanged: (Boolean) -> Unit,
     onPeekBubbleReturnsChanged: (Boolean) -> Unit,
     onPeekBubbleSizeChanged: (Float) -> Unit,
-    onPeekBubbleDockAlphaChanged: (Float) -> Unit,
+    onPeekBubbleAlphaChanged: (Float) -> Unit,
     onShowRecentAppsChanged: (Boolean) -> Unit,
     onThemeChanged: (AppTheme) -> Unit,
     onBack: () -> Unit
@@ -367,16 +367,19 @@ fun SettingsScreen(
                     }
                 }
             )
-            var alphaDraft by remember(config.peekBubbleDockAlpha) { mutableFloatStateOf(config.peekBubbleDockAlpha) }
+            var alphaDraft by remember(config.peekBubbleAlpha) { mutableFloatStateOf(config.peekBubbleAlpha) }
             ListItem(
-                headlineContent = { Text(stringResource(R.string.settings_peek_dock_alpha)) },
+                headlineContent = { Text(stringResource(R.string.settings_peek_alpha)) },
                 supportingContent = {
-                    Slider(
+                    Column {
+                        Text(stringResource(R.string.settings_peek_alpha_hint))
+                        Slider(
                         value = alphaDraft,
                         onValueChange = { alphaDraft = it },
-                        onValueChangeFinished = { onPeekBubbleDockAlphaChanged(alphaDraft) },
-                        valueRange = ConfigStore.PEEK_ALPHA_MIN..ConfigStore.PEEK_ALPHA_MAX
-                    )
+                            onValueChangeFinished = { onPeekBubbleAlphaChanged(alphaDraft) },
+                            valueRange = ConfigStore.PEEK_ALPHA_MIN..ConfigStore.PEEK_ALPHA_MAX
+                        )
+                    }
                 }
             )
             HorizontalDivider()

@@ -93,7 +93,7 @@ class MainActivity : ComponentActivity() {
             var showPeekBubble by remember { mutableStateOf(initialConfig.showPeekBubble) }
             var peekBubbleReturns by remember { mutableStateOf(initialConfig.peekBubbleReturns) }
             var peekBubbleSize by remember { mutableStateOf(initialConfig.peekBubbleSize) }
-            var peekBubbleDockAlpha by remember { mutableStateOf(initialConfig.peekBubbleDockAlpha) }
+            var peekBubbleAlpha by remember { mutableStateOf(initialConfig.peekBubbleAlpha) }
             var showRecentApps by remember { mutableStateOf(initialConfig.showRecentApps) }
             var theme by remember { mutableStateOf(initialConfig.theme) }
             // The one pending Snackbar message, if any — shown by whichever screen is up on its
@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity() {
             // deliberately NOT done here is touching the launcher alias for an icon change — see
             // reconcileLauncherIconOrRestart for why that can only ever happen on a fresh launch.
             fun persist() {
-                val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, peekBubbleReturns, peekBubbleSize, peekBubbleDockAlpha, showRecentApps, theme)
+                val config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, peekBubbleReturns, peekBubbleSize, peekBubbleAlpha, showRecentApps, theme)
                 ConfigStore.save(this, config)
                 ShortcutSync.sync(this, mode, slots.toList(), useAllSlotsInDirectMode)
                 DebugLog.log(this, TAG, "persist: done mode=$mode variant=$iconVariant")
@@ -128,7 +128,7 @@ class MainActivity : ComponentActivity() {
                         showPeekBubble = showPeekBubble,
                         peekBubbleReturns = peekBubbleReturns,
                         peekBubbleSize = peekBubbleSize,
-                        peekBubbleDockAlpha = peekBubbleDockAlpha,
+                        peekBubbleAlpha = peekBubbleAlpha,
                         showRecentApps = showRecentApps,
                         theme = theme,
                         screen = screen,
@@ -166,8 +166,8 @@ class MainActivity : ComponentActivity() {
                             peekBubbleSize = value
                             persist()
                         },
-                        onPeekBubbleDockAlphaChanged = { value ->
-                            peekBubbleDockAlpha = value
+                        onPeekBubbleAlphaChanged = { value ->
+                            peekBubbleAlpha = value
                             persist()
                         },
                         onShowRecentAppsChanged = { value ->
@@ -194,7 +194,7 @@ class MainActivity : ComponentActivity() {
                             showPeekBubble = imported.showPeekBubble && Settings.canDrawOverlays(this)
                             peekBubbleReturns = imported.peekBubbleReturns
                             peekBubbleSize = imported.peekBubbleSize
-                            peekBubbleDockAlpha = imported.peekBubbleDockAlpha
+                            peekBubbleAlpha = imported.peekBubbleAlpha
                             showRecentApps = imported.showRecentApps && RecentApps.hasUsageAccess(this)
                             theme = imported.theme
                             persist()
@@ -375,7 +375,7 @@ private fun NoAppRoot(
     showPeekBubble: Boolean,
     peekBubbleReturns: Boolean,
     peekBubbleSize: Float,
-    peekBubbleDockAlpha: Float,
+    peekBubbleAlpha: Float,
     showRecentApps: Boolean,
     theme: AppTheme,
     screen: Screen,
@@ -389,7 +389,7 @@ private fun NoAppRoot(
     onShowPeekBubbleChanged: (Boolean) -> Unit,
     onPeekBubbleReturnsChanged: (Boolean) -> Unit,
     onPeekBubbleSizeChanged: (Float) -> Unit,
-    onPeekBubbleDockAlphaChanged: (Float) -> Unit,
+    onPeekBubbleAlphaChanged: (Float) -> Unit,
     onShowRecentAppsChanged: (Boolean) -> Unit,
     onThemeChanged: (AppTheme) -> Unit,
     onConfigImported: (AppConfig) -> Unit
@@ -444,7 +444,7 @@ private fun NoAppRoot(
         }
 
         is Screen.Settings -> SettingsScreen(
-            config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, peekBubbleReturns, peekBubbleSize, peekBubbleDockAlpha, showRecentApps, theme),
+            config = AppConfig(mode, slots.toList(), useAllSlotsInDirectMode, iconVariant, showPeekBubble, peekBubbleReturns, peekBubbleSize, peekBubbleAlpha, showRecentApps, theme),
             hint = hint,
             onHintShown = onHintShown,
             onImportConfig = onConfigImported,
@@ -453,7 +453,7 @@ private fun NoAppRoot(
             onShowPeekBubbleChanged = onShowPeekBubbleChanged,
             onPeekBubbleReturnsChanged = onPeekBubbleReturnsChanged,
             onPeekBubbleSizeChanged = onPeekBubbleSizeChanged,
-            onPeekBubbleDockAlphaChanged = onPeekBubbleDockAlphaChanged,
+            onPeekBubbleAlphaChanged = onPeekBubbleAlphaChanged,
             onShowRecentAppsChanged = onShowRecentAppsChanged,
             onThemeChanged = onThemeChanged,
             onBack = { onScreenChange(Screen.Config) }
