@@ -46,9 +46,8 @@ private const val TRASH_ACTIVATE_RADIUS_DP = 56
 private const val FLING_FRICTION = 0.09f
 private const val MAX_FLING_VELOCITY_DP_PER_S = 1500f
 // Edge docking: coming to rest this close to a side edge tucks the bubble into it, leaving a
-// DOCK_PEEK_DP sliver on screen as the handle.
+// sliver (AppConfig.peekBubbleDockPeek of its width) on screen as the handle.
 private const val DOCK_ZONE_DP = 28
-private const val DOCK_PEEK_DP = 18
 private const val DOCK_SCALE = 0.9f
 // Docked opacity relative to the configured button opacity — out of the way means fainter too.
 private const val DOCK_ALPHA_FACTOR = 0.6f
@@ -132,7 +131,7 @@ class QuickPickPeekOverlayService : Service() {
         val trashSizePx = (TRASH_SIZE_DP * density).toInt()
         val trashActivateRadiusPx = TRASH_ACTIVATE_RADIUS_DP * density
         val dockZonePx = (DOCK_ZONE_DP * density).toInt()
-        val dockPeekPx = (DOCK_PEEK_DP * bubbleScale * density).toInt()
+        val dockPeekPx = (sizePx * config.peekBubbleDockPeek).toInt().coerceAtLeast(1)
 
         val wm = overlayContext.getSystemService(WINDOW_SERVICE) as WindowManager
         windowManager = wm

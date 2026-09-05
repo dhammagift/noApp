@@ -15,9 +15,11 @@
     <string name="settings_peek_bubble_returns">Возвращать кнопку после ✕</string>
     <string name="settings_peek_bubble_returns_hint">Выкл: перетащили кнопку на ✕ — её не будет, пока снова не включите здесь. Вкл: её не будет только до следующего открытия.</string>
     <string name="settings_peek_size">Размер кнопки</string>
-    <string name="settings_peek_size_hint">Заодно — насколько она выглядывает, когда прилипла к краю экрана.</string>
+    <string name="settings_peek_size_hint">Выглядывающая из края часть масштабируется вместе с ней.</string>
     <string name="settings_peek_alpha">Прозрачность кнопки</string>
     <string name="settings_peek_alpha_hint">У края экрана она сама становится ещё чуть прозрачнее.</string>
+    <string name="settings_peek_dock_peek">Насколько выглядывает из края</string>
+    <string name="settings_peek_dock_peek_hint">Сколько кнопки остаётся видно у края — можно выдвинуть, а можно задвинуть глубже.</string>
     <string name="settings_show_recent_apps">Недавние приложения в режимах List и Mix</string>
     <string name="settings_show_recent_apps_hint">Если вы хотите видеть недавние приложения отдельно в списке, то мне нужно будет разрешение usage access.</string>
     <string name="settings_usage_access_dialog_title">Доступ к использованию</string>

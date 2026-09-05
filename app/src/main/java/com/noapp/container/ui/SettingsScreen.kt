@@ -117,6 +117,7 @@ fun SettingsScreen(
     onPeekBubbleReturnsChanged: (Boolean) -> Unit,
     onPeekBubbleSizeChanged: (Float) -> Unit,
     onPeekBubbleAlphaChanged: (Float) -> Unit,
+    onPeekBubbleDockPeekChanged: (Float) -> Unit,
     onShowRecentAppsChanged: (Boolean) -> Unit,
     onThemeChanged: (AppTheme) -> Unit,
     onBack: () -> Unit
@@ -396,6 +397,7 @@ fun SettingsScreen(
             // preview alongside follows the drafts, so what you see is what you'll get.
             var sizeDraft by remember(config.peekBubbleSize) { mutableFloatStateOf(config.peekBubbleSize) }
             var alphaDraft by remember(config.peekBubbleAlpha) { mutableFloatStateOf(config.peekBubbleAlpha) }
+            var dockPeekDraft by remember(config.peekBubbleDockPeek) { mutableFloatStateOf(config.peekBubbleDockPeek) }
             Row(
                 Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -425,8 +427,20 @@ fun SettingsScreen(
                         onValueChangeFinished = { onPeekBubbleAlphaChanged(alphaDraft) },
                         valueRange = ConfigStore.PEEK_ALPHA_MIN..ConfigStore.PEEK_ALPHA_MAX
                     )
+                    Text(stringResource(R.string.settings_peek_dock_peek), style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        stringResource(R.string.settings_peek_dock_peek_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Slider(
+                        value = dockPeekDraft,
+                        onValueChange = { dockPeekDraft = it },
+                        onValueChangeFinished = { onPeekBubbleDockPeekChanged(dockPeekDraft) },
+                        valueRange = ConfigStore.PEEK_DOCK_MIN..ConfigStore.PEEK_DOCK_MAX
+                    )
                 }
-                PeekBubblePreview(size = sizeDraft, alpha = alphaDraft, modifier = Modifier.padding(start = 12.dp))
+                PeekBubblePreview(size = sizeDraft, alpha = alphaDraft, dockPeek = dockPeekDraft, modifier = Modifier.padding(start = 12.dp))
             }
             HorizontalDivider()
             val pinDefaultItem = stringResource(R.string.settings_pin_default_item)
@@ -581,13 +595,13 @@ fun SettingsScreen(
  * sliver width, same 90% scale and 60% opacity ratio as QuickPickPeekOverlayService).
  */
 @Composable
-private fun PeekBubblePreview(size: Float, alpha: Float, modifier: Modifier = Modifier) {
+private fun PeekBubblePreview(size: Float, alpha: Float, dockPeek: Float, modifier: Modifier = Modifier) {
     val bubble = (PEEK_BUBBLE_BASE_DP * size).dp
-    val peek = (PEEK_DOCK_PEEK_BASE_DP * size).dp
+    val peek = bubble * dockPeek
     Box(
         modifier
             .width(116.dp)
-            .height(220.dp)
+            .height(300.dp)
             .clip(RoundedCornerShape(16.dp))
             // Darkest surface of the theme (near-black in dark, white in light) rather than
             // surfaceVariant: the bubble's own grey blended into that in the dark theme.
@@ -623,6 +637,5 @@ private fun PreviewBubble(size: Dp, alpha: Float, modifier: Modifier = Modifier)
 
 // Mirrors QuickPickPeekOverlayService's geometry so the preview is honest.
 private const val PEEK_BUBBLE_BASE_DP = 48
-private const val PEEK_DOCK_PEEK_BASE_DP = 18
 private const val PEEK_DOCK_SCALE = 0.9f
 private const val PEEK_DOCK_ALPHA_FACTOR = 0.6f

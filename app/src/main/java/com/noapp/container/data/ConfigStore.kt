@@ -20,6 +20,8 @@ object ConfigStore {
     const val PEEK_SIZE_MAX = 2f
     const val PEEK_ALPHA_MIN = 0.2f
     const val PEEK_ALPHA_MAX = 1f
+    const val PEEK_DOCK_MIN = 0.15f
+    const val PEEK_DOCK_MAX = 0.85f
 
     private const val PREFS_NAME = "no_app_prefs"
     private const val KEY_CONFIG_JSON = "config_json"
@@ -46,6 +48,7 @@ object ConfigStore {
             .put("peekBubbleReturns", config.peekBubbleReturns)
             .put("peekBubbleSize", config.peekBubbleSize.toDouble())
             .put("peekBubbleAlpha", config.peekBubbleAlpha.toDouble())
+            .put("peekBubbleDockPeek", config.peekBubbleDockPeek.toDouble())
             .put("showRecentApps", config.showRecentApps)
             .put("theme", config.theme.name)
             .toString()
@@ -79,6 +82,7 @@ object ConfigStore {
             peekBubbleReturns = root.optBoolean("peekBubbleReturns", false),
             peekBubbleSize = root.optDouble("peekBubbleSize", 1.0).toFloat().coerceIn(PEEK_SIZE_MIN, PEEK_SIZE_MAX),
             peekBubbleAlpha = root.optDouble("peekBubbleAlpha", 0.9).toFloat().coerceIn(PEEK_ALPHA_MIN, PEEK_ALPHA_MAX),
+            peekBubbleDockPeek = root.optDouble("peekBubbleDockPeek", 0.375).toFloat().coerceIn(PEEK_DOCK_MIN, PEEK_DOCK_MAX),
             showRecentApps = root.optBoolean("showRecentApps", false),
             theme = runCatching { AppTheme.valueOf(root.optString("theme", AppTheme.SYSTEM.name)) }
                 .getOrDefault(AppTheme.SYSTEM)
