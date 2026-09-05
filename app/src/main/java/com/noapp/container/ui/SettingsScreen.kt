@@ -404,11 +404,6 @@ fun SettingsScreen(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.settings_peek_size), style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        stringResource(R.string.settings_peek_size_hint),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                     Slider(
                         value = sizeDraft,
                         onValueChange = { sizeDraft = it },
@@ -416,11 +411,6 @@ fun SettingsScreen(
                         valueRange = ConfigStore.PEEK_SIZE_MIN..ConfigStore.PEEK_SIZE_MAX
                     )
                     Text(stringResource(R.string.settings_peek_alpha), style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        stringResource(R.string.settings_peek_alpha_hint),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                     Slider(
                         value = alphaDraft,
                         onValueChange = { alphaDraft = it },
@@ -428,11 +418,6 @@ fun SettingsScreen(
                         valueRange = ConfigStore.PEEK_ALPHA_MIN..ConfigStore.PEEK_ALPHA_MAX
                     )
                     Text(stringResource(R.string.settings_peek_dock_peek), style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        stringResource(R.string.settings_peek_dock_peek_hint),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                     Slider(
                         value = dockPeekDraft,
                         onValueChange = { dockPeekDraft = it },
@@ -601,7 +586,7 @@ private fun PeekBubblePreview(size: Float, alpha: Float, dockPeek: Float, modifi
     Box(
         modifier
             .width(116.dp)
-            .height(300.dp)
+            .height(220.dp)
             .clip(RoundedCornerShape(16.dp))
             // Darkest surface of the theme (near-black in dark, white in light) rather than
             // surfaceVariant: the bubble's own grey blended into that in the dark theme.
